@@ -1,0 +1,2998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Earth Map - Pro Controls</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css">
+
+  <style>
+    :root {
+      --primary: #0079c1;
+      --bg-glass: rgba(255, 255, 255, 0.85);
+      --blur: blur(12px);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #map { position: absolute; inset: 0; }
+
+    .status {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 1000; background: var(--bg-glass); backdrop-filter: var(--blur);
+      border-radius: 20px; padding: 6px 18px; font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow); pointer-events: none; transition: opacity 0.5s, transform 0.5s;
+    }
+
+    .panel {
+      position: absolute; right: 20px; top: 20px; z-index: 1000;
+      background: linear-gradient(180deg, rgba(18, 24, 38, 0.90), rgba(255, 255, 255, 0.88));
+      backdrop-filter: blur(16px);
+      border-radius: 20px; box-shadow: 0 18px 55px rgba(0, 0, 0, 0.28); width: 332px;
+      transition: all 0.35s ease; max-height: calc(100vh - 40px); display: flex; flex-direction: column;
+      border: 1px solid rgba(255, 255, 255, 0.18); overflow: hidden;
+    }
+
+    .panel.collapsed { width: 48px; height: 48px; border-radius: 24px; overflow: hidden; }
+
+    .panel-header { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; position: relative; background: linear-gradient(135deg, rgba(0, 121, 193, 0.18), rgba(255, 255, 255, 0.18)); border-bottom: 1px solid rgba(255,255,255,0.18); }
+    .panel-header h3 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.2px; color: #f8fafc; text-transform: none; }
+    .toggle-icon { font-size: 12px; color: #e2e8f0; }
+    .panel.collapsed .toggle-icon { display: none; }
+    .menu-icon { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; color: var(--primary); }
+    .panel.collapsed .menu-icon { display: block; }
+    .panel.collapsed .panel-content, .panel.collapsed h3 { display: none; }
+
+    .panel-content { padding: 14px 18px 18px 18px; overflow-y: auto; scrollbar-width: thin; }
+
+    .panel-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; padding: 0 0 2px; }
+    .panel-tab { border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,0.58); color: #334155; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 8px 10px; cursor: pointer; transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease; }
+    .panel-tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.86); border-color: rgba(0,121,193,0.28); color: var(--primary); }
+    .panel-tab.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.16); }
+    .compact-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: 2px 0 10px; padding: 8px 10px; border: 1px solid rgba(148,163,184,0.16); border-radius: 12px; background: rgba(255,255,255,0.44); }
+    .compact-row .compact-label { display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .compact-row .compact-label strong { font-size: 12px; color:#0f172a; }
+    .compact-row .compact-label span { font-size: 10px; color:#64748b; }
+    .panel.compact { width: 306px; }
+    .panel.compact .setting-desc,
+    .panel.compact .stats,
+    .panel.compact .import-box .coord-actions + div,
+    .panel.compact .import-box > div[style*='font-size:11px'],
+    .panel.compact .section-body .setting-desc { display:none !important; }
+    .panel.compact .section-title { margin-top: 12px; }
+    .panel.compact .import-box, .panel.compact .stats { padding: 10px; }
+    .panel.compact .tree-panel { max-height: 180px; }
+    .section-group { margin-bottom: 4px; }
+    .section-group.collapsed .section-body { display: none; }
+    .section-title { font-weight: 800; text-transform: uppercase; font-size: 10px; color: #64748b; margin: 18px 0 10px 0; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+    .section-title::after { content: ""; flex: 1; height: 1px; background: rgba(148, 163, 184, 0.18); margin-left: 10px; }
+    .section-chevron { margin-left: 8px; font-size: 11px; color: #94a3b8; transition: transform .2s ease; }
+    .section-group.collapsed .section-chevron { transform: rotate(-90deg); }
+
+    .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+    .setting-label { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    .setting-title { font-weight: 600; font-size: 13px; color: #333; }
+    .setting-desc { font-size: 10px; color: #777; }
+
+    input[type=text], select { width: 100%; padding: 9px 11px; border: 1px solid rgba(148,163,184,0.25); border-radius: 10px; font-size: 12px; margin-top: 4px; box-sizing: border-box; background: rgba(255,255,255,0.74); outline: none; transition: border-color .2s, box-shadow .2s, background .2s; }
+    input[type=text]:focus, select:focus { border-color: rgba(0,121,193,0.55); box-shadow: 0 0 0 3px rgba(0,121,193,0.14); background: #fff; }
+
+    input[type=range] { width: 100%; height: 4px; background: rgba(148,163,184,0.3); border-radius: 2px; appearance: none; margin: 10px 0; }
+    input[type=range]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; cursor: pointer; box-shadow: 0 0 0 3px rgba(0,121,193,0.16); }
+
+    .switch { position: relative; display: inline-block; width: 36px; height: 18px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 18px; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(18px); }
+
+    .action-btn { width: 100%; padding: 9px 12px; background: linear-gradient(135deg, var(--primary), #005a91); color: white; border: none; border-radius: 999px; font-weight: 700; font-size: 11px; cursor: pointer; margin-top: 8px; box-shadow: 0 10px 18px rgba(0,121,193,0.18); transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+    .action-btn:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 12px 24px rgba(0,121,193,0.22); }
+
+    .tool-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tool-btn { width: auto; flex: 1 1 104px; margin-top: 0; }
+    .tool-btn.active { outline: 2px solid rgba(0,121,193,0.35); box-shadow: 0 0 0 4px rgba(0,121,193,0.12); }
+    .coord-output { margin-top: 10px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.78); border: 1px solid rgba(148,163,184,0.18); font-size: 12px; color: #0f172a; line-height: 1.35; }
+    .coord-actions { display:flex; gap:8px; margin-top:8px; }
+
+    .location-btn { text-align: left; width: 100%; background: rgba(255,255,255,0.64); border: 1px solid rgba(148,163,184,0.2); padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; margin-bottom: 6px; transition: transform .15s ease, background .15s ease, border-color .15s ease; }
+    .location-btn:hover { background: #fff; border-color: rgba(0,121,193,0.38); color: var(--primary); transform: translateY(-1px); }
+
+    .stats { margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.55); border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; font-family: monospace; font-size: 11px; color: #475569; display: flex; justify-content: space-around; }
+
+    .import-box { background: rgba(255,255,255,0.58); padding: 12px; border-radius: 14px; border: 1px solid rgba(148,163,184,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+    .import-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .import-row input[type=file] { width: 100%; font-size: 11px; }
+    .tree-panel { margin-top: 10px; max-height: 240px; overflow: auto; padding-right: 4px; }
+    .tree-root { list-style: none; padding-left: 0; margin: 0; }
+    .tree-item { list-style: none; margin: 4px 0; }
+    .tree-node { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; background: rgba(255,255,255,0.72); }
+    .tree-node:hover { background: rgba(255,255,255,0.92); border-color: rgba(0,121,193,0.22); }
+    .tree-label { flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-meta { font-size: 10px; color: #64748b; }
+    .tree-kind { width: 20px; height: 20px; border-radius: 999px; display: grid; place-items: center; flex: 0 0 auto; font-size: 12px; line-height: 1; border: 1px solid rgba(148,163,184,0.28); background: rgba(255,255,255,0.92); box-shadow: inset 0 1px 0 rgba(255,255,255,0.65); }
+    .tree-kind.folder { color: #0f172a; background: rgba(148,163,184,0.16); }
+    .tree-kind.document { color: #7c3aed; background: rgba(124,58,237,0.14); }
+    .tree-kind.overlay { color: #0ea5e9; background: rgba(14,165,233,0.14); }
+    .tree-kind.pin { color: #dc2626; background: rgba(220,38,38,0.14); }
+    .tree-kind.path { color: #b45309; background: rgba(245,158,11,0.16); }
+    .tree-kind.polygon { color: #047857; background: rgba(16,185,129,0.16); }
+    .tree-kind.unknown { color: #334155; background: rgba(148,163,184,0.12); }
+    .tree-toggle { width: 18px; height: 18px; border: 1px solid rgba(148,163,184,0.28); border-radius: 6px; background: rgba(255,255,255,0.82); cursor: pointer; display: grid; place-items: center; font-size: 11px; color: #334155; }
+    .tree-toggle:hover { border-color: rgba(0,121,193,0.5); color: var(--primary); }
+    .tree-checkbox { transform: scale(0.9); }
+    .amo-state { display:inline-flex; align-items:center; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.02em; }
+    .amo-state.off { background: rgba(100,116,139,0.14); color:#475569; }
+    .amo-state.loading { background: rgba(245,158,11,0.18); color:#92400e; }
+    .amo-state.loaded { background: rgba(16,185,129,0.18); color:#065f46; }
+    .amo-state.error { background: rgba(239,68,68,0.16); color:#991b1b; }
+    .amo-type-menu { margin-top: 8px; border: 1px solid rgba(148,163,184,0.22); border-radius: 12px; background: rgba(255,255,255,0.76); overflow: hidden; }
+    .amo-type-menu.closed .amo-type-options { display: none; }
+    .amo-type-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 0; background: rgba(255,255,255,0.82); cursor: pointer; font-size: 12px; font-weight: 700; color: #0f172a; }
+    .amo-type-head:hover { background: #fff; }
+    .amo-type-count { font-size: 11px; font-weight: 700; color: #64748b; }
+    .amo-type-options { max-height: 180px; overflow: auto; padding: 8px 10px 10px; display: grid; gap: 6px; }
+    .amo-type-option { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #1e293b; padding: 4px 2px; }
+    .amo-type-option input { transform: scale(0.95); }
+    .tree-remove { width: 22px; height: 22px; border: none; border-radius: 8px; background: rgba(220,38,38,0.12); color: #b91c1c; cursor: pointer; font-weight: 800; line-height: 1; }
+    .tree-remove:hover { background: rgba(220,38,38,0.2); }
+    .tree-go { width: 22px; height: 22px; border: none; border-radius: 8px; background: rgba(0, 121, 193, 0.12); color: var(--primary); cursor: pointer; font-weight: 800; line-height: 1; }
+    .tree-go:hover { background: rgba(0, 121, 193, 0.2); }
+    .tree-info { width: 22px; height: 22px; border: none; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #047857; cursor: pointer; font-weight: 800; line-height: 1; }
+    .tree-info:hover { background: rgba(16, 185, 129, 0.2); }
+    .tree-children { margin: 6px 0 0 18px; padding-left: 10px; border-left: 1px dashed rgba(148,163,184,0.25); }
+.preset-row { display: flex; gap: 6px; margin: 8px 0 6px; flex-wrap: wrap; }
+.preset-chip { flex: 1 1 0; min-width: 70px; border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,0.74); color: #334155; border-radius: 999px; padding: 7px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: .15s ease; }
+.preset-chip:hover { background: #fff; border-color: rgba(0,121,193,0.42); color: var(--primary); transform: translateY(-1px); }
+.preset-chip.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.18); }
+.detail-value { font-size: 11px; color: #64748b; font-weight: 700; margin-top: 2px; }
+  
+    .import-type-filters { display: grid; gap: 8px; margin: 8px 0 10px; }
+    .filter-preset-row { display: flex; gap: 8px; }
+    .filter-preset { flex: 1 1 0; border: 1px solid rgba(148,163,184,0.24); background: rgba(255,255,255,0.74); color: #334155; border-radius: 12px; padding: 8px 10px; font-size: 11px; font-weight: 800; cursor: pointer; transition: .15s ease; }
+    .filter-preset:hover { background: #fff; border-color: rgba(0,121,193,0.34); color: var(--primary); transform: translateY(-1px); }
+    .filter-preset.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.18); }
+    .type-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .type-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #334155; background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.22); border-radius: 999px; padding: 7px 10px; cursor: pointer; user-select: none; transition: .15s ease; }
+    .type-chip input { margin: 0; }
+    .type-chip:hover { background: rgba(255,255,255,0.92); border-color: rgba(0,121,193,0.24); color: var(--primary); }
+    .type-chip.active { background: rgba(0,121,193,0.10); border-color: rgba(0,121,193,0.30); color: var(--primary); }
+    .type-chip .chip-ico { font-size: 12px; }
+    .tree-item.filtered-out { display: none !important; }
+
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="status" id="status">Initializing 3D World...</div>
+  <div id="hoverTip" style="position:absolute;display:none;z-index:1100;pointer-events:none;background:rgba(17,24,39,0.92);color:#fff;padding:6px 8px;border-radius:8px;font-size:12px;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.25);"></div>
+
+  <div class="panel" id="controlPanel">
+    <div class="panel-header" id="panelHeader">
+      <h3>Earth Controls</h3>
+      <span class="toggle-icon">▼</span>
+      <div class="menu-icon">⚙️</div>
+    </div>
+
+    <div class="panel-content">
+      <div class="panel-tabs" id="panelTabs">
+        <button class="panel-tab active" type="button" data-tab="map">Map</button>
+        <button class="panel-tab" type="button" data-tab="tools">Tools</button>
+        <button class="panel-tab" type="button" data-tab="imports">Imports</button>
+        <button class="panel-tab" type="button" data-tab="settings">Settings</button>
+      </div>
+      <div class="compact-row" id="compactModeRow">
+        <div class="compact-label">
+          <strong>Compact mode</strong>
+          <span>Collapses sections and trims the menu height</span>
+        </div>
+        <label class="switch" title="Toggle compact mode">
+          <input type="checkbox" id="toggleCompact">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <span class="section-title">Visual Style</span>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span class="setting-title">Topographic View</span>
+          <span class="setting-desc">Detailed physical mapping</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleTopo" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <span class="section-title">Environment</span>
+      <div class="setting-label">
+        <span class="setting-title">Time of Day (Sun Elevation)</span>
+        <span class="setting-desc" id="timeLabel">12:00 PM</span>
+        <input type="range" id="timeSlider" min="0" max="1440" step="1" value="720">
+      </div>
+
+      <span class="section-title">3D Rendering</span>
+      <div class="setting-row">
+        <span class="setting-title">Buildings</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleBuildings" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <span class="setting-title">Terrain</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleTerrain" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <span class="section-title">Navigation</span>
+      <div class="setting-row">
+        <span class="setting-title">Auto-Rotate</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleRotate">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-label">
+        <span class="setting-title">View Angle</span>
+        <input type="range" id="tiltSlider" min="0" max="90" value="75">
+      </div>
+
+      <span class="section-title">GPS Marker Tool</span>
+      <div style="background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+        <input type="text" id="markerName" placeholder="Marker Name (e.g. Base)">
+        <input type="text" id="markerCoords" placeholder="Coordinates (Lat, Lon)">
+        <button class="action-btn" id="btnAddMarker">Place 1.5m Cone</button>
+      </div>
+
+      <span class="section-title">Location & Measure</span>
+      <div class="import-box">
+        <div class="tool-grid">
+          <button class="action-btn tool-btn" id="btnPickLocation" style="margin-top:0;">Pick Coordinates</button>
+          <button class="action-btn tool-btn" id="btnMeasureDistance" style="margin-top:0;">Measure Distance</button>
+          <button class="action-btn tool-btn" id="btnMeasureArea" style="margin-top:0;">Measure Area</button>
+          <button class="tree-toggle" id="btnClearMeasure" title="Clear picked points and measurements">✕</button>
+        </div>
+        <div id="coordOutput" class="coord-output">Click a tool, then choose a point on the map.</div>
+        <div class="coord-actions">
+          <button class="action-btn" id="btnCopyCoords" style="margin-top:0; flex:1;">Copy Lat / Lon</button>
+        </div>
+        <div style="font-size:11px; color:#64748b; margin-top:6px;">Tip: click the same measurement button again to stop.</div>
+      </div>
+
+      <span class="section-title">KML / KMZ Import</span>
+      <div class="setting-row" style="margin-bottom:10px;">
+        <div>
+          <span class="setting-title">Abandoned Mine Openings</span>
+          <div style="font-size:11px; color:#64748b; margin-top:2px;">Official Nova Scotia layer; turns the dataset on and off <span id="amoState" class="amo-state off">Off</span></div>
+        </div>
+        <label class="switch" title="Show or hide the Abandoned Mine Openings layer">
+          <input type="checkbox" id="toggleAMO">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-label" style="margin-top:-2px; margin-bottom:10px;">
+        <span class="setting-title">Display types</span>
+        <div id="amoTypeMenu" class="amo-type-menu closed">
+          <button type="button" id="amoTypeMenuBtn" class="amo-type-head" disabled>
+            <span>Choose types</span>
+            <span id="amoTypeMenuCount" class="amo-type-count">All types</span>
+          </button>
+          <div class="amo-type-options">
+            <label class="amo-type-option"><input type="checkbox" id="amoTypeAll" checked disabled> All types</label>
+            <div id="amoTypeOptions"></div>
+          </div>
+        </div>
+      </div>
+      <div class="import-box">
+        <input type="file" id="kmlFileInput" accept=".kml,.kmz,.xml" />
+        <div class="import-row">
+          <button class="action-btn" id="btnImportKml" style="margin-top:0;">Import Selected File</button>
+          <button class="tree-toggle" id="btnClearImports" title="Remove all imported items">✕</button>
+        </div>
+        <div class="import-row">
+          <button class="action-btn tool-btn" id="btnExportKml" style="margin-top:0; flex:1;">Export KML</button>
+          <button class="action-btn tool-btn" id="btnExportKmz" style="margin-top:0; flex:1;">Export KMZ</button>
+        </div>
+        <div class="import-type-filters" id="importTypeFilters"></div>
+        <div class="tree-panel" id="importTree"></div>
+      </div>
+
+      <span class="section-title">Map Type</span>
+      <div class="setting-label">
+        <span class="setting-title">Map Type</span>
+        <span class="setting-desc">Switch between Topographic, Satellite, and the Nova Scotia LiDAR hillshade tile layer.</span>
+        <select id="mapTypeSelect">
+          <option value="topographic">Topographic</option>
+          <option value="satellite">Satellite</option>
+          <option value="hillshade">Nova Scotia Hillshade (LiDAR, 2D only)</option>
+        </select>
+      </div>
+      <span class="section-title">Shortcuts</span>
+      <button class="location-btn" data-loc="halifax">⚓ Halifax Citadel</button>
+      <button class="location-btn" data-loc="nyc">🏙️ New York</button>
+      <button class="location-btn" data-loc="everest">🏔️ Everest</button>
+
+      <div class="stats" id="camStats">
+        <div>ALT: --</div>
+        <div>TILT: --</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://js.arcgis.com/4.29/"></script>
+  <script>
+    require([
+      "esri/Map",
+      "esri/Basemap",
+      "esri/views/SceneView",
+      "esri/layers/SceneLayer",
+      "esri/layers/ElevationLayer",
+      "esri/layers/GraphicsLayer",
+      "esri/layers/FeatureLayer",
+      "esri/layers/TileLayer",
+      "esri/Graphic",
+      "esri/geometry/Point",
+      "esri/geometry/Polyline",
+      "esri/geometry/Polygon",
+      "esri/core/reactiveUtils",
+      "esri/symbols/PointSymbol3D",
+      "esri/symbols/ObjectSymbol3DLayer",
+      "esri/symbols/TextSymbol",
+      "esri/symbols/SimpleMarkerSymbol",
+      "esri/symbols/SimpleLineSymbol",
+      "esri/symbols/SimpleFillSymbol",
+      "esri/layers/MediaLayer",
+      "esri/layers/support/ImageElement",
+      "esri/layers/support/ExtentAndRotationGeoreference",
+      "esri/layers/support/CornersGeoreference",
+      "esri/symbols/PictureMarkerSymbol",
+      "esri/symbols/PictureFillSymbol",
+      "esri/geometry/Extent"
+    ], function(
+      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, TileLayer, Graphic, Point, Polyline, Polygon, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
+    ) {
+      const map = new Map({
+        basemap: "topo-vector",
+        ground: {
+          layers: [ new ElevationLayer({ url: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer" }) ]
+        }
+      });
+
+      const hillshadeLayer = new TileLayer({
+        url: "https://nsgiwa.novascotia.ca/arcgis/rest/services/ELEV/ELEV_LIDAR_Projects_Hillshade_UT83/MapServer",
+        title: "Nova Scotia LiDAR Hillshade",
+        opacity: 0.9,
+        visible: true
+      });
+
+      const hillshadeBasemap = new Basemap({
+        baseLayers: [hillshadeLayer],
+        title: "Nova Scotia LiDAR Hillshade"
+      });
+
+      function applyMapType(type, persist = true) {
+        const normalized = (type === "satellite" || type === "hillshade") ? type : "topographic";
+        const select = document.getElementById("mapTypeSelect");
+
+        if (normalized === "hillshade") {
+          // The official Nova Scotia hillshade service is a tiled layer published in WKID 2038,
+          // which is not a reliable fit for this globe-based 3D scene.
+          setStatus("Nova Scotia Hillshade is available in the menu, but this 3D scene uses Topographic instead.");
+          map.basemap = "topo-vector";
+          if (select && select.value !== "topographic") select.value = "topographic";
+        } else if (normalized === "satellite") {
+          map.basemap = "satellite";
+          if (select && select.value !== normalized) select.value = normalized;
+        } else {
+          map.basemap = "topo-vector";
+          if (select && select.value !== normalized) select.value = normalized;
+        }
+
+        if (persist) {
+          uiPrefs.mapType = normalized;
+          saveUiPrefs();
+        }
+      }
+
+      const view = new SceneView({
+        container: "map",
+        map,
+        qualityProfile: "high",
+        camera: {
+          position: { longitude: -63.586949480877735, latitude: 44.65286231272531, z: 350 },
+          tilt: 65,
+          heading: 140
+        },
+        environment: {
+          atmosphere: { quality: "high" },
+          starsEnabled: true,
+          lighting: { type: "sun", date: new Date(), directShadowsEnabled: true }
+        },
+        ui: { components: ["zoom", "navigation-toggle", "compass"] }
+      });
+
+      const markerLayer = new GraphicsLayer();
+      const measurementLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+      map.addMany([markerLayer, measurementLayer]);
+
+      const importedRoot = { id: 'root', title: 'Imported Items', type: 'root', expanded: true, children: [], parent: null };
+      const importedNodes = Object.create(null);
+      const importedLayers = new Set();
+      const importedElevationInfo = { mode: 'on-the-ground' };
+      const importedResources = Object.create(null);
+      let importCounter = 0;
+      const hoverTip = document.getElementById('hoverTip');
+      const toolState = {
+        mode: null,
+        points: [],
+        picked: null,
+        lastText: '',
+        dragIndex: null,
+        dragging: false
+      };
+      const IMPORT_TYPE_ORDER = [
+        { kind: 'pin', label: 'Pins', icon: '📍' },
+        { kind: 'path', label: 'Paths', icon: '🛣' },
+        { kind: 'polygon', label: 'Polygons', icon: '⬟' },
+        { kind: 'overlay', label: 'Overlays', icon: '🖼' },
+        { kind: 'folder', label: 'Folders', icon: '📁' },
+        { kind: 'document', label: 'Documents', icon: '🗂' },
+        { kind: 'dataset', label: 'Datasets', icon: '⛏' },
+        { kind: 'unknown', label: 'Other', icon: '•' }
+      ];
+      let importTypeFilters = new Set(IMPORT_TYPE_ORDER.map(v => v.kind));
+
+      const AMO_LAYER_URL = 'https://dawson.novascotia.ca/arcgis/rest/services/Hosted/Abandoned_Mine_Openings_Degree_of_Hazard_d010ns_ut83/FeatureServer/4';
+      let amoFeatureLayer = null;
+      let amoDatasetLoading = false;
+      let amoTypesLoaded = false;
+      let amoAvailableTypes = [];
+      let amoSelectedTypes = new Set();
+
+      function formatNumber(value, digits = 2) {
+        if (!Number.isFinite(value)) return '—';
+        const abs = Math.abs(value);
+        if (abs >= 1000000) return `${(value / 1000000).toFixed(2)} M`;
+        if (abs >= 1000) return `${(value / 1000).toFixed(2)} K`;
+        return value.toFixed(digits);
+      }
+
+      function formatDistanceMeters(meters) {
+        if (!Number.isFinite(meters)) return '—';
+        if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
+        return `${meters.toFixed(0)} m`;
+      }
+
+      function formatAreaSqMeters(area) {
+        if (!Number.isFinite(area)) return '—';
+        if (area >= 1000000) return `${(area / 1000000).toFixed(2)} km²`;
+        if (area >= 4046.8564224) return `${(area / 4046.8564224).toFixed(2)} acres`;
+        return `${area.toFixed(0)} m²`;
+      }
+
+      function formatDurationMinutes(minutes) {
+        if (!Number.isFinite(minutes)) return '—';
+        if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
+        return `${Math.max(1, Math.round(minutes))}m`;
+      }
+
+      function formatElevationMeters(meters) {
+        if (!Number.isFinite(meters)) return '—';
+        return `${meters.toFixed(0)} m`;
+      }
+
+      function toRadians(v) { return v * Math.PI / 180; }
+function makePoint4326(lon, lat) {
+  return new Point({ x: lon, y: lat, spatialReference: { wkid: 4326 } });
+}
+
+function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotation = 0) {
+  const centerX = (west + east) / 2;
+  const centerY = (south + north) / 2;
+  const halfWidth = (east - west) / 2;
+  const halfHeight = (north - south) / 2;
+  const angle = toRadians(rotation || 0); // KML rotation is counterclockwise.
+
+  const rotate = (x, y) => ({
+    x: (x * Math.cos(angle)) - (y * Math.sin(angle)),
+    y: (x * Math.sin(angle)) + (y * Math.cos(angle))
+  });
+
+  const tl = rotate(-halfWidth, halfHeight);
+  const tr = rotate(halfWidth, halfHeight);
+  const br = rotate(halfWidth, -halfHeight);
+  const bl = rotate(-halfWidth, -halfHeight);
+
+  return new CornersGeoreference({
+    topLeft: makePoint4326(centerX + tl.x, centerY + tl.y),
+    topRight: makePoint4326(centerX + tr.x, centerY + tr.y),
+    bottomRight: makePoint4326(centerX + br.x, centerY + br.y),
+    bottomLeft: makePoint4326(centerX + bl.x, centerY + bl.y)
+  });
+}
+
+
+      function normalizeResourceKey(href) {
+        if (!href) return '';
+        let out = String(href).trim().replace(/^["']|["']$/g, '');
+        out = out.split(/[?#]/)[0].replace(/^(\.\/)+/, '').replace(/^\/+/, '');
+        try { out = decodeURIComponent(out); } catch (_) {}
+        return out.replace(/\\/g, '/').toLowerCase();
+      }
+
+      function resolveResourceHref(href) {
+        if (!href) return '';
+        const raw = String(href).trim().replace(/^["']|["']$/g, '');
+        if (/^(data:|blob:|https?:|file:|mailto:|javascript:)/i.test(raw)) return raw;
+        const key = normalizeResourceKey(raw);
+        if (importedResources[key]) return importedResources[key];
+        const base = key.split('/').pop();
+        if (base && importedResources[base]) return importedResources[base];
+        return raw;
+      }
+
+      function clearImportedResources() {
+        for (const key of Object.keys(importedResources)) delete importedResources[key];
+      }
+
+      function registerImportedResource(key, href) {
+        const normalized = normalizeResourceKey(key);
+        if (!normalized || !href) return;
+        if (!importedResources[normalized]) importedResources[normalized] = href;
+        const base = normalized.split('/').pop();
+        if (base && !importedResources[base]) importedResources[base] = href;
+      }
+
+      async function loadKmzTextFromBuffer(arrayBuffer, sourceName = 'KMZ') {
+        if (typeof JSZip === 'undefined') throw new Error('JSZip failed to load.');
+        clearImportedResources();
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const candidates = Object.keys(zip.files).filter(name => name.toLowerCase().endsWith('.kml'));
+        if (!candidates.length) throw new Error(`No .kml file found inside the ${sourceName}.`);
+        const primary = candidates.find(name => /doc\.kml$/i.test(name)) || candidates[0];
+
+        const resourceEntries = Object.keys(zip.files).filter(name => !zip.files[name].dir && name !== primary);
+        await Promise.all(resourceEntries.map(async (name) => {
+          const entry = zip.files[name];
+          const ext = name.split('.').pop().toLowerCase();
+          if (!['png','jpg','jpeg','gif','webp','bmp','svg','ico'].includes(ext)) return;
+          const blob = await entry.async('blob');
+          const objectUrl = URL.createObjectURL(blob);
+          registerImportedResource(name, objectUrl);
+        }));
+
+        return await zip.files[primary].async('text');
+      }
+
+      function buildDatasetNode(title, children, meta = {}) {
+        const node = {
+          id: makeId('dataset'),
+          title,
+          type: 'dataset',
+          kind: 'dataset',
+          expanded: true,
+          children,
+          parent: importedRoot,
+          visible: true,
+          description: meta.description || '',
+          source: meta.source || ''
+        };
+        children.forEach(child => { child.parent = node; });
+        registerImportedNode(node);
+        return node;
+      }
+
+      function removeNodeFromRoot(node) {
+        if (!node) return;
+        removeNode(node);
+        importedRoot.children = importedRoot.children.filter(child => child !== node);
+      }
+
+      function escapeSqlString(value) {
+        return String(value ?? '').replace(/'/g, "''");
+      }
+
+      function updateAmoTypeMenuLabel() {
+        const countEl = document.getElementById('amoTypeMenuCount');
+        const btn = document.getElementById('amoTypeMenuBtn');
+        const allBox = document.getElementById('amoTypeAll');
+        if (!countEl || !btn) return;
+        const total = amoAvailableTypes.length;
+        const selected = amoSelectedTypes.size;
+        if (selected === 0) {
+          countEl.textContent = 'None';
+          if (allBox) allBox.checked = false;
+        } else if (selected >= total) {
+          countEl.textContent = 'All types';
+          if (allBox) allBox.checked = true;
+        } else if (selected === 1) {
+          countEl.textContent = [...amoSelectedTypes][0];
+          if (allBox) allBox.checked = false;
+        } else {
+          countEl.textContent = `${selected} selected`;
+          if (allBox) allBox.checked = false;
+        }
+        btn.disabled = !amoFeatureLayer;
+      }
+
+      function renderAmoTypeOptions(types) {
+        const container = document.getElementById('amoTypeOptions');
+        const allBox = document.getElementById('amoTypeAll');
+        const menu = document.getElementById('amoTypeMenu');
+        if (!container) return;
+        const unique = [...new Set((types || []).map(v => String(v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        amoAvailableTypes = unique;
+        if (amoSelectedTypes.size === 0 || [...amoSelectedTypes].some(v => !unique.includes(v))) {
+          amoSelectedTypes = new Set(unique);
+        }
+        container.innerHTML = unique.length
+          ? unique.map(t => `<label class="amo-type-option"><input type="checkbox" data-amo-type="${escapeHtml(t)}" ${amoSelectedTypes.has(t) ? 'checked' : ''} ${amoFeatureLayer ? '' : 'disabled'}> ${escapeHtml(t)}</label>`).join('')
+          : '<div style="font-size:12px;color:#64748b;padding:2px 0;">No types available</div>';
+        if (allBox) {
+          allBox.disabled = !amoFeatureLayer || unique.length === 0;
+          allBox.checked = unique.length > 0 && amoSelectedTypes.size === unique.length;
+        }
+        if (menu) menu.classList.toggle('closed', true);
+        updateAmoTypeMenuLabel();
+      }
+
+      function populateAmoTypeFilter(types) {
+        renderAmoTypeOptions(types);
+      }
+
+      function applyAmoTypeFilter() {
+        if (!amoFeatureLayer) return;
+        const selected = [...amoSelectedTypes].filter(Boolean);
+        if (!selected.length) {
+          amoFeatureLayer.definitionExpression = '1=0';
+          return;
+        }
+        if (selected.length >= amoAvailableTypes.length) {
+          amoFeatureLayer.definitionExpression = null;
+          return;
+        }
+        const expr = selected.map(v => `opening_ty = '${escapeSqlString(v)}'`).join(' OR ');
+        amoFeatureLayer.definitionExpression = `(${expr})`;
+      }
+
+      async function loadAmoTypes() {
+        if (!amoFeatureLayer) return [];
+        try {
+          const q = amoFeatureLayer.createQuery();
+          q.where = '1=1';
+          q.outFields = ['opening_ty'];
+          q.returnGeometry = false;
+          q.num = 2000;
+          const result = await amoFeatureLayer.queryFeatures(q);
+          const types = (result.features || []).map(f => f.attributes?.opening_ty).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+          populateAmoTypeFilter(types);
+          amoTypesLoaded = true;
+          return types;
+        } catch (err) {
+          console.error(err);
+          amoTypesLoaded = false;
+          populateAmoTypeFilter([]);
+          return [];
+        }
+      }
+
+      function getAmoTypeLabel(typeValue) {
+        const v = String(typeValue || '').trim();
+        return v || 'Unknown';
+      }
+
+      function getAmoPopupTemplate() {
+        return {
+          title: "{name}",
+          content: [{
+            type: "fields",
+            fieldInfos: [
+              { fieldName: "county", label: "County" },
+              { fieldName: "opening_ty", label: "Opening Type" },
+              { fieldName: "commodity", label: "Commodity" },
+              { fieldName: "degree_haz", label: "Hazard" },
+              { fieldName: "origlength", label: "Original Length (m)" },
+              { fieldName: "origwidth", label: "Original Width (m)" },
+              { fieldName: "origdepth", label: "Original Depth (m)" },
+              { fieldName: "mea_length", label: "Measured Length (m)" },
+              { fieldName: "mea_width", label: "Measured Width (m)" },
+              { fieldName: "mea_depth", label: "Measured Depth (m)" },
+              { fieldName: "l_visit", label: "Last Visited" },
+              { fieldName: "protection", label: "Protection" },
+              { fieldName: "s_location", label: "Location" },
+              { fieldName: "tract", label: "Tract" },
+              { fieldName: "claim", label: "Claim" },
+              { fieldName: "nts", label: "NTS" }
+            ]
+          }]
+        };
+      }
+
+      async function loadAbandonedMineOpenings() {
+        if (amoFeatureLayer) {
+          amoFeatureLayer.visible = true;
+          setAmoState('loaded', 'Loaded');
+          setStatus('Abandoned Mine Openings shown.');
+          return amoFeatureLayer;
+        }
+        if (amoDatasetLoading) return null;
+        amoDatasetLoading = true;
+        setAmoState('loading', 'Loading...');
+        setStatus('Loading Abandoned Mine Openings...');
+        try {
+          amoFeatureLayer = new FeatureLayer({
+            url: AMO_LAYER_URL,
+            title: 'Abandoned Mine Openings',
+            visible: true,
+            outFields: ['*'],
+            elevationInfo: { mode: 'on-the-ground' },
+            popupTemplate: getAmoPopupTemplate()
+          });
+          map.add(amoFeatureLayer);
+          await amoFeatureLayer.load();
+          await loadAmoTypes();
+          applyAmoTypeFilter();
+          updateAmoTypeMenuLabel();
+          setAmoState('loaded', 'Loaded');
+          setStatus('Abandoned Mine Openings loaded.');
+          return amoFeatureLayer;
+        } catch (err) {
+          console.error(err);
+          amoFeatureLayer = null;
+          setAmoState('error', 'Error');
+          setStatus((err && err.message) ? err.message : 'Could not load Abandoned Mine Openings.');
+          throw err;
+        } finally {
+          amoDatasetLoading = false;
+        }
+      }
+
+      function removeAbandonedMineOpenings() {
+        if (amoFeatureLayer) {
+          amoFeatureLayer.visible = false;
+        }
+        setAmoState('off', 'Off');
+      updateAmoTypeMenuLabel();
+        setStatus('Abandoned Mine Openings hidden.');
+      }
+
+      async function syncAbandonedMineOpenings(enabled) {
+        const box = document.getElementById('toggleAMO');
+        try {
+          if (enabled) {
+            await loadAbandonedMineOpenings();
+            if (box) box.checked = true;
+          } else {
+            removeAbandonedMineOpenings();
+          }
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message || 'Could not load Abandoned Mine Openings.');
+          setAmoState('error', 'Error');
+          if (box) box.checked = true;
+        }
+      }
+
+      function haversineMeters(a, b) {
+        if (!a || !b) return 0;
+        const R = 6371008.8;
+        const lat1 = toRadians(a.latitude);
+        const lat2 = toRadians(b.latitude);
+        const dLat = toRadians(b.latitude - a.latitude);
+        const dLon = toRadians(b.longitude - a.longitude);
+        const s = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(Math.max(0, 1 - s)));
+      }
+
+      function projectLocal(coords) {
+        if (!coords || !coords.length) return [];
+        const lat0 = coords.reduce((sum, p) => sum + p.latitude, 0) / coords.length;
+        const lon0 = coords.reduce((sum, p) => sum + p.longitude, 0) / coords.length;
+        const metersPerDegLat = 111132.92;
+        const metersPerDegLon = 111412.84 * Math.cos(toRadians(lat0));
+        return coords.map(p => ({
+          x: (p.longitude - lon0) * metersPerDegLon,
+          y: (p.latitude - lat0) * metersPerDegLat,
+          z: Number.isFinite(p.z) ? p.z : 0
+        }));
+      }
+
+      function polylineLengthMeters(coords) {
+        let total = 0;
+        for (let i = 1; i < coords.length; i += 1) total += haversineMeters(coords[i - 1], coords[i]);
+        return total;
+      }
+
+      function ringAreaSqMeters(coords) {
+        if (!coords || coords.length < 3) return 0;
+        const pts = projectLocal(coords);
+        let sum = 0;
+        for (let i = 0; i < pts.length; i += 1) {
+          const a = pts[i];
+          const b = pts[(i + 1) % pts.length];
+          sum += a.x * b.y - b.x * a.y;
+        }
+        return Math.abs(sum) / 2;
+      }
+
+      function ringPerimeterMeters(coords) {
+        if (!coords || coords.length < 2) return 0;
+        let total = 0;
+        for (let i = 1; i < coords.length; i += 1) total += haversineMeters(coords[i - 1], coords[i]);
+        total += haversineMeters(coords[coords.length - 1], coords[0]);
+        return total;
+      }
+
+      function elevationStats(coords) {
+        const zs = coords.map(p => Number.isFinite(p.z) ? p.z : null).filter(v => v !== null);
+        if (!zs.length) return { min: null, max: null, range: null, gain: null, loss: null };
+        let gain = 0;
+        let loss = 0;
+        for (let i = 1; i < zs.length; i += 1) {
+          const delta = zs[i] - zs[i - 1];
+          if (delta > 0) gain += delta; else loss += Math.abs(delta);
+        }
+        const min = Math.min(...zs);
+        const max = Math.max(...zs);
+        return { min, max, range: max - min, gain, loss };
+      }
+
+      function estimateDurationMinutes(lengthMeters, kind, gainMeters = 0) {
+        if (!Number.isFinite(lengthMeters) || lengthMeters <= 0) return null;
+        const baseKph = kind === 'trail' || kind === 'path' ? 4.2 : 5.0;
+        const uphillPenalty = Number.isFinite(gainMeters) && gainMeters > 0 ? Math.min(0.5, gainMeters / Math.max(1, lengthMeters) * 0.8) : 0;
+        const effectiveKph = Math.max(1.5, baseKph * (1 - uphillPenalty));
+        return (lengthMeters / 1000) / effectiveKph * 60;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[ch]));
+      }
+
+      function formatAttributesHtml(graphic) {
+        const attrs = graphic?.attributes || {};
+        const rows = [];
+        const add = (label, value) => {
+          if (value === undefined || value === null || value === '' || value === '—') return;
+          rows.push(`<div style="display:flex;justify-content:space-between;gap:12px"><span style="opacity:.7">${escapeHtml(label)}</span><span style="text-align:right">${escapeHtml(value)}</span></div>`);
+        };
+        add('Type', attrs.kind);
+        add('Source', attrs.source);
+        add('Style', attrs.styleName);
+        add('Distance', attrs.distanceText);
+        add('Area', attrs.areaText);
+        add('Perimeter', attrs.perimeterText);
+        add('Length', attrs.lengthText);
+        add('Duration', attrs.durationText);
+        add('Elevation Gain', attrs.elevationGainText);
+        add('Elevation Loss', attrs.elevationLossText);
+        add('Height Range', attrs.heightRangeText);
+        add('Rotation', attrs.rotationText);
+        add('Image', attrs.href);
+        add('Description', attrs.description);
+        return rows.length ? `<div style="display:grid;gap:6px">${rows.join('')}</div>` : '<div>No additional information.</div>';
+      }
+
+      function getNodePrimaryGraphic(node) {
+        if (!node) return null;
+        if (node.graphic) return node.graphic;
+        if (node.layer?.graphics) return typeof node.layer.graphics.getItemAt === 'function' ? node.layer.graphics.getItemAt(0) : node.layer.graphics[0];
+        if (node.overlayLayer?.graphics) return typeof node.overlayLayer.graphics.getItemAt === 'function' ? node.overlayLayer.graphics.getItemAt(0) : node.overlayLayer.graphics[0];
+        return null;
+      }
+
+      function getNodeKind(node) {
+        const raw = String(node?.kind || node?.type || getNodePrimaryGraphic(node)?.attributes?.kind || 'unknown').toLowerCase();
+        if (raw.includes('dataset')) return 'dataset';
+        if (raw.includes('pin') || raw.includes('marker') || raw.includes('placemark')) return 'pin';
+        if (raw.includes('path') || raw.includes('line') || raw.includes('trail')) return 'path';
+        if (raw.includes('polygon')) return 'polygon';
+        if (raw.includes('overlay')) return 'overlay';
+        if (raw.includes('document')) return 'document';
+        if (raw.includes('folder') || raw === 'root') return 'folder';
+        return 'unknown';
+      }
+
+      function getNodeTypeLabel(node) {
+        const kind = getNodeKind(node);
+        if (kind === 'folder') return node?.type === 'root' ? 'Imported root' : 'Folder';
+        if (kind === 'dataset') return 'Abandoned Mine Openings';
+        if (kind === 'document') return 'Document';
+        if (kind === 'overlay') return 'Image overlay';
+        if (kind === 'pin') return 'Pin';
+        if (kind === 'path') return 'Path';
+        if (kind === 'polygon') return 'Polygon';
+        return 'Imported item';
+      }
+
+      function getNodeIcon(node) {
+        const kind = getNodeKind(node);
+        if (kind === 'folder') return '📁';
+        if (kind === 'dataset') return '⛏';
+        if (kind === 'document') return '🗂';
+        if (kind === 'overlay') return '🖼';
+        if (kind === 'pin') return '📍';
+        if (kind === 'path') return '🛣';
+        if (kind === 'polygon') return '⬟';
+        return '•';
+      }
+
+      function setImportTypeFilterState(nextKinds) {
+        importTypeFilters = new Set(nextKinds);
+        if (importTypeFilters.size === 0) IMPORT_TYPE_ORDER.forEach(v => importTypeFilters.add(v.kind));
+        renderImportTypeFilters();
+        renderImportTree();
+      }
+
+      function renderImportTypeFilters() {
+        const host = document.getElementById('importTypeFilters');
+        if (!host) return;
+        const allActive = importTypeFilters.size === IMPORT_TYPE_ORDER.length;
+        const noneActive = importTypeFilters.size === 0;
+        host.innerHTML = `
+          <div class="filter-preset-row">
+            <button type="button" class="filter-preset ${allActive ? 'active' : ''}" data-filter-action="all">All</button>
+            <button type="button" class="filter-preset ${noneActive ? 'active' : ''}" data-filter-action="clear">None</button>
+          </div>
+          <div class="type-chip-grid">
+            ${IMPORT_TYPE_ORDER.map(item => {
+              const checked = importTypeFilters.has(item.kind) ? 'checked' : '';
+              return `<label class="type-chip ${checked ? 'active' : ''}" title="Show or hide ${escapeHtml(item.label)}"><input type="checkbox" data-import-type="${item.kind}" ${checked}><span class="chip-ico">${item.icon}</span><span>${escapeHtml(item.label)}</span></label>`;
+            }).join('')}
+          </div>
+        `;
+        host.querySelectorAll('input[data-import-type]').forEach(cb => {
+          cb.addEventListener('change', () => {
+            const kind = cb.dataset.importType;
+            if (!kind) return;
+            const next = new Set(importTypeFilters);
+            if (cb.checked) next.add(kind); else next.delete(kind);
+            setImportTypeFilterState(next);
+          });
+        });
+        host.querySelectorAll('[data-filter-action]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const action = btn.dataset.filterAction;
+            if (action === 'all') setImportTypeFilterState(IMPORT_TYPE_ORDER.map(v => v.kind));
+            if (action === 'clear') setImportTypeFilterState([]);
+          });
+        });
+      }
+
+      function nodeMatchesImportTypeFilter(node) {
+        if (!node) return false;
+        const kind = getNodeKind(node);
+        if (importTypeFilters.has(kind)) return true;
+        return !!(node.children && node.children.some(child => nodeMatchesImportTypeFilter(child)));
+      }
+
+      function collectNodeGraphics(node, out = []) {
+        if (!node) return out;
+        if (node.graphic) out.push(node.graphic);
+        if (node.layer?.graphics) node.layer.graphics.forEach(g => out.push(g));
+        if (node.overlayLayer?.graphics) node.overlayLayer.graphics.forEach(g => out.push(g));
+        if (node.children) node.children.forEach(child => collectNodeGraphics(child, out));
+        return out;
+      }
+
+      const originalGraphicSymbols = new WeakMap();
+      let highlightedImportedNode = null;
+
+      function cloneSymbolSafe(symbol) {
+        if (!symbol) return symbol;
+        if (typeof symbol.clone === 'function') return symbol.clone();
+        try { return structuredClone(symbol); } catch (_) { return symbol; }
+      }
+
+      function captureOriginalSymbol(graphic) {
+        if (!graphic || originalGraphicSymbols.has(graphic)) return;
+        originalGraphicSymbols.set(graphic, cloneSymbolSafe(graphic.symbol));
+      }
+
+      function setGraphicHighlighted(graphic, highlighted) {
+        if (!graphic) return;
+        captureOriginalSymbol(graphic);
+        const original = originalGraphicSymbols.get(graphic);
+        if (!original) return;
+        if (!highlighted) {
+          graphic.symbol = cloneSymbolSafe(original);
+          return;
+        }
+
+        const sym = cloneSymbolSafe(original);
+        const kind = String(graphic.attributes?.kind || '').toLowerCase();
+        const geomType = graphic.geometry?.type || '';
+
+        if (sym?.symbolLayers && geomType === 'point') {
+          const layer = typeof sym.symbolLayers.getItemAt === 'function' ? sym.symbolLayers.getItemAt(0) : sym.symbolLayers[0];
+          if (layer) {
+            if (typeof layer.width === 'number') layer.width *= 1.18;
+            if (typeof layer.height === 'number') layer.height *= 1.18;
+            if (typeof layer.depth === 'number') layer.depth *= 1.18;
+            if (layer.material) {
+              const accent = kind === 'pin' ? 'rgba(255,204,102,1)' : 'rgba(96,165,250,1)';
+              layer.material.color = accent;
+            }
+          }
+          graphic.symbol = sym;
+          return;
+        }
+
+        if (sym?.font && graphic.attributes?.showDistance) {
+          sym.color = 'rgba(15,23,42,1)';
+          sym.haloColor = 'rgba(255,255,255,1)';
+          sym.haloSize = (sym.haloSize || 1.5) + 1;
+          sym.font = { ...(sym.font || {}), size: (sym.font?.size || 11) + 1, weight: 'bold' };
+          graphic.symbol = sym;
+          return;
+        }
+
+        if (geomType === 'polyline' && 'width' in sym) {
+          sym.width = (sym.width || 2) + 2;
+          graphic.symbol = sym;
+          return;
+        }
+
+        if (geomType === 'polygon' && sym) {
+          if (sym.outline && typeof sym.outline.width === 'number') sym.outline.width = Math.max(sym.outline.width + 1, 2);
+          graphic.symbol = sym;
+          return;
+        }
+
+        graphic.symbol = sym;
+      }
+
+      function setNodeHighlight(node, highlighted) {
+        if (!node) return;
+        const graphics = collectNodeGraphics(node, []).filter(Boolean);
+        graphics.forEach(g => setGraphicHighlighted(g, highlighted));
+        if (node.mediaLayer) node.mediaLayer.opacity = highlighted ? 0.98 : 0.85;
+        if (node.overlayLayer) node.overlayLayer.opacity = highlighted ? 0.15 : 0.0;
+      }
+
+      function setActiveImportedNode(node, event) {
+        if (highlightedImportedNode && highlightedImportedNode !== node) {
+          setNodeHighlight(highlightedImportedNode, false);
+        }
+        highlightedImportedNode = node || null;
+        if (node) {
+          setNodeHighlight(node, true);
+          const title = escapeHtml(node.title || 'Imported item');
+          const type = escapeHtml(getNodeTypeLabel(node));
+          hoverTip.innerHTML = `<div style="font-weight:700">${title}</div><div style="font-size:11px;opacity:.85;margin-top:2px">${type}</div>`;
+          const x = Math.min((event?.clientX ?? event?.pageX ?? 0) + 14, window.innerWidth - 280);
+          const y = Math.min((event?.clientY ?? event?.pageY ?? 0) + 14, window.innerHeight - 80);
+          hoverTip.style.left = `${Math.max(8, x)}px`;
+          hoverTip.style.top = `${Math.max(8, y)}px`;
+          hoverTip.style.display = 'block';
+        } else {
+          hideHover();
+        }
+      }
+
+      function registerImportedNode(node) {
+        importedNodes[node.id] = node;
+      }
+
+      function unregisterImportedNode(node) {
+        delete importedNodes[node.id];
+      }
+
+      function makeId(prefix = 'node') {
+        importCounter += 1;
+        return `${prefix}-${Date.now()}-${importCounter}`;
+      }
+
+      function setNodeVisibility(node, visible) {
+        node.visible = visible;
+        if (node.layer) node.layer.visible = visible;
+        if (node.mediaLayer) node.mediaLayer.visible = visible;
+        if (node.overlayLayer) node.overlayLayer.visible = visible;
+        if (node.children) node.children.forEach(child => setNodeVisibility(child, visible));
+      }
+
+      function removeNode(node) {
+        if (!node) return;
+        if (highlightedImportedNode && (highlightedImportedNode === node || (node.children && node.children.includes(highlightedImportedNode)))) {
+          highlightedImportedNode = null;
+          hideHover();
+        }
+        if (node.children) [...node.children].forEach(removeNode);
+        if (node.layer) {
+          map.remove(node.layer);
+          importedLayers.delete(node.layer);
+        }
+        if (node.mediaLayer) {
+          map.remove(node.mediaLayer);
+          importedLayers.delete(node.mediaLayer);
+        }
+        if (node.overlayLayer) {
+          map.remove(node.overlayLayer);
+          importedLayers.delete(node.overlayLayer);
+        }
+        unregisterImportedNode(node);
+        if (node.parent && node.parent.children) {
+          node.parent.children = node.parent.children.filter(child => child !== node);
+        }
+      }
+
+      function clearImported() {
+        if (amoFeatureLayer) {
+          amoFeatureLayer.visible = false;
+          const amoToggle = document.getElementById('toggleAMO');
+          if (amoToggle) amoToggle.checked = false;
+          setAmoState('off', 'Off');
+      updateAmoTypeMenuLabel();
+        }
+        [...importedRoot.children].forEach(removeNode);
+        importedRoot.children = [];
+        clearImportedResources();
+        renderImportTree();
+        setStatus('Cleared imported items.');
+      }
+
+      function makeGraphicLayer(name, graphics, options = {}) {
+        const layer = new GraphicsLayer({
+          title: name,
+          listMode: 'hide',
+          elevationInfo: options.elevationInfo || importedElevationInfo
+        });
+        if (graphics && graphics.length) layer.addMany(graphics);
+        map.add(layer);
+        if (typeof map.reorder === 'function') {
+          try { map.reorder(layer, map.layers.length - 1); } catch (err) {}
+        }
+        importedLayers.add(layer);
+        return layer;
+      }
+
+      function clamp01(v) {
+        return Math.max(0, Math.min(1, v));
+      }
+
+      function kmlColorToRgba(colorString, fallbackAlpha = 1) {
+        let s = String(colorString || '').trim().replace(/^#/, '');
+        if (!s) return null;
+        if (/^[0-9a-fA-F]{6}$/.test(s)) {
+          const r = parseInt(s.slice(0, 2), 16);
+          const g = parseInt(s.slice(2, 4), 16);
+          const b = parseInt(s.slice(4, 6), 16);
+          return [r, g, b, clamp01(fallbackAlpha)];
+        }
+        if (!/^[0-9a-fA-F]{8}$/.test(s)) return null;
+        const a = parseInt(s.slice(0, 2), 16) / 255;
+        const b = parseInt(s.slice(2, 4), 16);
+        const g = parseInt(s.slice(4, 6), 16);
+        const r = parseInt(s.slice(6, 8), 16);
+        return [r, g, b, clamp01(Number.isFinite(a) ? a : fallbackAlpha)];
+      }
+
+      function rgbaToCssColor(rgba, fallback = 'rgba(0,121,193,0.95)') {
+        if (!Array.isArray(rgba) || rgba.length < 3) return fallback;
+        const [r, g, b, a = 1] = rgba;
+        if (![r, g, b].every(Number.isFinite)) return fallback;
+        return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${clamp01(Number.isFinite(a) ? a : 1)})`;
+      }
+
+      function resolveStyleColor(styleColor, fallback) {
+        const rgba = Array.isArray(styleColor) ? styleColor : kmlColorToRgba(styleColor);
+        return rgbaToCssColor(rgba, fallback);
+      }
+
+      function resolveStyleRgba(styleColor, fallback = [0,121,193,0.95]) {
+        if (Array.isArray(styleColor) && styleColor.length >= 3) return styleColor;
+        const rgba = kmlColorToRgba(styleColor);
+        return Array.isArray(rgba) ? rgba : fallback;
+      }
+
+      function parseKmlCoordinates(text) {
+        return String(text || '')
+          .trim()
+          .split(/\s+/)
+          .map(chunk => chunk.split(',').map(Number))
+          .filter(parts => parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1]))
+          .map(parts => ({ longitude: parts[0], latitude: parts[1], z: Number.isFinite(parts[2]) ? parts[2] : 0 }));
+      }
+
+      function findFirst(el, tagName) {
+        return el.getElementsByTagName(tagName)[0] || null;
+      }
+
+      function textOf(parent, tagName) {
+        const el = findFirst(parent, tagName);
+        return el ? (el.textContent || '').trim() : '';
+      }
+
+      function getNodeTagName(el) {
+        return (el && (el.localName || el.nodeName || '')).replace(/^.*:/, '');
+      }
+
+      function buildStyleFromElement(styleEl) {
+        if (!styleEl) return null;
+
+        const lineStyle = findFirst(styleEl, 'LineStyle');
+        const polyStyle = findFirst(styleEl, 'PolyStyle');
+        const iconStyle = findFirst(styleEl, 'IconStyle');
+        const labelStyle = findFirst(styleEl, 'LabelStyle');
+
+        return {
+          line: lineStyle ? {
+            color: kmlColorToRgba(textOf(lineStyle, 'color')),
+            width: parseFloat(textOf(lineStyle, 'width')) || 2
+          } : null,
+          poly: polyStyle ? {
+            color: kmlColorToRgba(textOf(polyStyle, 'color')),
+            fill: textOf(polyStyle, 'fill') !== '0',
+            outline: textOf(polyStyle, 'outline') !== '0'
+          } : null,
+          icon: iconStyle ? {
+            color: kmlColorToRgba(textOf(iconStyle, 'color')),
+            scale: parseFloat(textOf(iconStyle, 'scale')) || 1,
+            href: textOf(findFirst(iconStyle, 'Icon') || iconStyle, 'href'),
+            hotSpot: (() => {
+              const hot = findFirst(iconStyle, 'hotSpot');
+              return hot ? {
+                x: parseFloat(hot.getAttribute('x') || '0.5'),
+                y: parseFloat(hot.getAttribute('y') || '0.5'),
+                xunits: hot.getAttribute('xunits') || 'fraction',
+                yunits: hot.getAttribute('yunits') || 'fraction'
+              } : null;
+            })()
+          } : null,
+          label: labelStyle ? {
+            scale: parseFloat(textOf(labelStyle, 'scale')) || 1,
+            color: kmlColorToRgba(textOf(labelStyle, 'color'))
+          } : null
+        };
+      }
+
+      function parseStyles(xml) {
+        const styles = Object.create(null);
+
+        const styleEls = [...xml.getElementsByTagName('Style')];
+        for (const styleEl of styleEls) {
+          const id = (styleEl.getAttribute('id') || '').trim();
+          if (!id) continue;
+          styles[`#${id}`] = buildStyleFromElement(styleEl);
+        }
+
+        const styleMapEls = [...xml.getElementsByTagName('StyleMap')];
+        for (const mapEl of styleMapEls) {
+          const id = (mapEl.getAttribute('id') || '').trim();
+          if (!id) continue;
+          const pairs = [...mapEl.getElementsByTagName('Pair')];
+          const normal = pairs.find(pair => textOf(pair, 'key') === 'normal');
+          const styleUrl = normal ? textOf(normal, 'styleUrl') : '';
+          if (styleUrl && styles[styleUrl]) styles[`#${id}`] = styles[styleUrl];
+        }
+
+        return styles;
+      }
+
+      function resolveStyle(styleUrl, styles) {
+        if (!styleUrl) return null;
+        const key = styleUrl.trim();
+        if (styles[key]) return styles[key];
+        if (key.startsWith('#') && styles[key]) return styles[key];
+        return null;
+      }
+
+      function getPlacemarkStyle(el, styles) {
+        const inlineStyle = findFirst(el, 'Style');
+        if (inlineStyle) return buildStyleFromElement(inlineStyle);
+        return resolveStyle(textOf(el, 'styleUrl'), styles);
+      }
+
+      function mergeStyles(base = {}, override = {}) {
+        return {
+          ...base,
+          ...override,
+          line: { ...(base.line || {}), ...(override.line || {}) },
+          poly: { ...(base.poly || {}), ...(override.poly || {}) },
+          icon: { ...(base.icon || {}), ...(override.icon || {}) },
+          label: { ...(base.label || {}), ...(override.label || {}) }
+        };
+      }
+
+      function geometryToExtent(geometry) {
+        if (!geometry) return null;
+        if (geometry.type === 'point') {
+          const lon = geometry.longitude ?? geometry.x;
+          const lat = geometry.latitude ?? geometry.y;
+          const z = geometry.z ?? 0;
+          return new Extent({
+            xmin: lon - 0.001,
+            ymin: lat - 0.001,
+            xmax: lon + 0.001,
+            ymax: lat + 0.001,
+            zmin: z - 50,
+            zmax: z + 50,
+            spatialReference: geometry.spatialReference || { wkid: 4326 }
+          });
+        }
+        return geometry.extent || null;
+      }
+
+      function unionExtents(extents) {
+        const valid = extents.filter(Boolean);
+        if (!valid.length) return null;
+        let out = valid[0].clone();
+        for (const e of valid.slice(1)) out = out.union(e);
+        return out.expand(1.2);
+      }
+
+      function collectNodeGeometries(node, out = []) {
+        if (!node) return out;
+        if (node.extent) out.push(node.extent);
+        if (node.graphic && node.graphic.geometry) out.push(node.graphic.geometry);
+        if (node.layer && node.layer.graphics) {
+          node.layer.graphics.forEach(g => g.geometry && out.push(g.geometry));
+        }
+        if (node.overlayLayer && node.overlayLayer.graphics) {
+          node.overlayLayer.graphics.forEach(g => g.geometry && out.push(g.geometry));
+        }
+        if (node.children) node.children.forEach(child => collectNodeGeometries(child, out));
+        return out;
+      }
+
+      async function goToNode(node) {
+        const geoms = collectNodeGeometries(node);
+        const extent = unionExtents(geoms.map(geometryToExtent).filter(Boolean));
+        if (extent) {
+          await view.goTo(extent, { duration: 1400 });
+          return;
+        }
+        if (node.graphic?.geometry) {
+          await view.goTo(node.graphic.geometry, { duration: 1400 });
+        }
+      }
+
+      function showHover(graphic, screenPoint) {
+        if (!hoverTip) return;
+        if (!graphic) {
+          hoverTip.style.display = 'none';
+          return;
+        }
+        const attrs = graphic.attributes || {};
+        const title = attrs.name || attrs.title || attrs.type || 'Imported item';
+        const desc = attrs.description ? `<div style="opacity:.85;margin-top:2px;max-width:240px">${attrs.description}</div>` : '';
+        hoverTip.innerHTML = `<div style="font-weight:700">${title}</div>${desc}`;
+        hoverTip.style.left = `${Math.min(screenPoint.x + 14, window.innerWidth - 280)}px`;
+        hoverTip.style.top = `${Math.min(screenPoint.y + 14, window.innerHeight - 80)}px`;
+        hoverTip.style.display = 'block';
+      }
+
+      function hideHover() {
+        if (hoverTip) hoverTip.style.display = 'none';
+      }
+
+      function openImportedInfo(graphic, location) {
+        if (!graphic) return;
+        const attrs = graphic.attributes || {};
+        const title = attrs.name || attrs.title || 'Imported item';
+        view.popup.open({
+          title,
+          content: formatAttributesHtml(graphic),
+          location: location || graphic.geometry
+        });
+      }
+
+      function getNodePopupLocation(node) {
+        return node?.graphic?.geometry || node?.extent || node?.overlayLayer?.graphics?.getItemAt?.(0)?.geometry || null;
+      }
+
+      function openImportedEditor(node) {
+        if (!node) return;
+
+        const root = document.createElement('div');
+        root.style.display = 'grid';
+        root.style.gap = '10px';
+        root.style.minWidth = '260px';
+        root.style.maxWidth = '320px';
+
+        const titleLabel = document.createElement('label');
+        titleLabel.style.display = 'grid';
+        titleLabel.style.gap = '4px';
+        titleLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Name</span>';
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.value = node.title || '';
+        titleInput.placeholder = 'Item name';
+        titleLabel.appendChild(titleInput);
+        root.appendChild(titleLabel);
+
+        const isOverlay = getNodeKind(node) === 'overlay' || !!node.mediaLayer;
+        let opacityInput = null;
+        let rotationInput = null;
+
+        if (isOverlay) {
+          const opacityLabel = document.createElement('label');
+          opacityLabel.style.display = 'grid';
+          opacityLabel.style.gap = '4px';
+          opacityLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Opacity</span>';
+          opacityInput = document.createElement('input');
+          opacityInput.type = 'range';
+          opacityInput.min = '0';
+          opacityInput.max = '100';
+          opacityInput.step = '1';
+          opacityInput.value = String(Math.round((node.mediaLayer?.opacity ?? node.opacity ?? 0.85) * 100));
+          opacityLabel.appendChild(opacityInput);
+          root.appendChild(opacityLabel);
+
+          const rotationLabel = document.createElement('label');
+          rotationLabel.style.display = 'grid';
+          rotationLabel.style.gap = '4px';
+          rotationLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Rotation</span>';
+          rotationInput = document.createElement('input');
+          rotationInput.type = 'range';
+          rotationInput.min = '-180';
+          rotationInput.max = '180';
+          rotationInput.step = '1';
+          rotationInput.value = String(Number.isFinite(node.rotation) ? node.rotation : 0);
+          rotationLabel.appendChild(rotationInput);
+          root.appendChild(rotationLabel);
+
+          const href = node.imageHref || node.graphic?.attributes?.href;
+          if (href) {
+            const previewWrap = document.createElement('div');
+            previewWrap.style.display = 'grid';
+            previewWrap.style.gap = '6px';
+            previewWrap.innerHTML = '<div style="font-size:12px;font-weight:700;color:#334155;">Image preview</div>';
+            const img = document.createElement('img');
+            img.src = resolveResourceHref(href);
+            img.alt = node.title || 'overlay preview';
+            img.style.width = '100%';
+            img.style.maxHeight = '140px';
+            img.style.objectFit = 'contain';
+            img.style.borderRadius = '10px';
+            img.style.background = 'rgba(255,255,255,0.65)';
+            img.style.border = '1px solid rgba(148,163,184,0.2)';
+            previewWrap.appendChild(img);
+            root.appendChild(previewWrap);
+          }
+        }
+
+        const btnRow = document.createElement('div');
+        btnRow.style.display = 'flex';
+        btnRow.style.gap = '8px';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'action-btn';
+        saveBtn.style.marginTop = '0';
+        saveBtn.textContent = 'Save changes';
+        saveBtn.addEventListener('click', () => {
+          const nextTitle = titleInput.value.trim() || node.title || 'Imported item';
+          node.title = nextTitle;
+
+          if (node.graphic?.attributes) {
+            node.graphic.attributes.title = nextTitle;
+            node.graphic.attributes.name = nextTitle;
+          }
+
+          if (node.layer?.graphics) {
+            node.layer.graphics.forEach(g => {
+              if (g?.attributes) {
+                g.attributes.title = nextTitle;
+                g.attributes.name = nextTitle;
+              }
+            });
+          }
+
+          if (isOverlay) {
+            const nextOpacity = clamp01((Number(opacityInput?.value) || 85) / 100);
+            node.opacity = nextOpacity;
+            if (node.mediaLayer) node.mediaLayer.opacity = nextOpacity;
+
+            const nextRotation = Number(rotationInput?.value) || 0;
+            node.rotation = nextRotation;
+
+            if (node.graphic?.attributes) {
+              node.graphic.attributes.rotation = nextRotation;
+              node.graphic.attributes.rotationText = `${nextRotation}°`;
+            }
+          }
+
+          renderImportTree();
+          view.popup.close();
+          setStatus(`Updated ${nextTitle}.`);
+        });
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tree-toggle';
+        closeBtn.type = 'button';
+        closeBtn.textContent = '✕';
+        closeBtn.title = 'Close';
+        closeBtn.addEventListener('click', () => view.popup.close());
+
+        btnRow.append(saveBtn, closeBtn);
+        root.appendChild(btnRow);
+
+        view.popup.open({
+          title: `Edit ${node.title || 'Imported item'}`,
+          content: root,
+          location: getNodePopupLocation(node)
+        });
+      }
+
+      function escapeKml(value) {
+        return escapeHtml(String(value ?? '')).replace(/\r?\n/g, ' ');
+      }
+
+      function kmlCoordinatesFromPoint(point) {
+        const lon = Number(point.longitude ?? point.x);
+        const lat = Number(point.latitude ?? point.y);
+        const z = Number.isFinite(point.z) ? point.z : 0;
+        return `${lon},${lat},${z}`;
+      }
+
+      function kmlCoordinatesFromArray(coords) {
+        return coords.map(c => `${Number(c[0])},${Number(c[1])},${Number.isFinite(c[2]) ? Number(c[2]) : 0}`).join(' ');
+      }
+
+      function geometryToKmlPlacemark(graphic, fallbackName = 'Item') {
+        if (!graphic || !graphic.geometry) return '';
+        const attrs = graphic.attributes || {};
+        const name = attrs.name || attrs.title || fallbackName;
+        const desc = attrs.description || '';
+        const kind = String(attrs.kind || '').toLowerCase();
+        if (kind.endsWith('-label') || graphic.symbol?.type === 'text') return '';
+
+        const addExtendedData = () => {
+          const rows = [];
+          const keys = ['kind', 'source', 'styleName', 'distanceText', 'areaText', 'perimeterText', 'lengthText', 'durationText', 'elevationGainText', 'elevationLossText', 'heightRangeText'];
+          keys.forEach(k => {
+            if (attrs[k] !== undefined && attrs[k] !== null && attrs[k] !== '') {
+              rows.push(`<Data name="${escapeHtml(k)}"><value>${escapeKml(attrs[k])}</value></Data>`);
+            }
+          });
+          return rows.length ? `<ExtendedData>${rows.join('')}</ExtendedData>` : '';
+        };
+
+        const g = graphic.geometry;
+        if (g.type === 'point') {
+          const lon = g.longitude ?? g.x;
+          const lat = g.latitude ?? g.y;
+          const z = Number.isFinite(g.z) ? g.z : 0;
+          return `
+<Placemark>
+  <name>${escapeKml(name)}</name>
+  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
+  ${addExtendedData()}
+  <Point><coordinates>${lon},${lat},${z}</coordinates></Point>
+</Placemark>`;
+        }
+        if (g.type === 'polyline') {
+          const coords = g.paths?.[0] || [];
+          if (!coords.length) return '';
+          return `
+<Placemark>
+  <name>${escapeKml(name)}</name>
+  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
+  ${addExtendedData()}
+  <LineString><tessellate>1</tessellate><coordinates>${kmlCoordinatesFromArray(coords)}</coordinates></LineString>
+</Placemark>`;
+        }
+        if (g.type === 'polygon') {
+          const ring = g.rings?.[0] || [];
+          if (!ring.length) return '';
+          const coords = ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) ? [...ring, ring[0]] : ring;
+          return `
+<Placemark>
+  <name>${escapeKml(name)}</name>
+  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
+  ${addExtendedData()}
+  <Polygon><outerBoundaryIs><LinearRing><tessellate>1</tessellate><coordinates>${kmlCoordinatesFromArray(coords)}</coordinates></LinearRing></outerBoundaryIs></Polygon>
+</Placemark>`;
+        }
+        return '';
+      }
+
+      function sanitizeFileName(name) {
+        return String(name || 'file').replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, '_').slice(0, 80);
+      }
+
+      async function blobToDataUrl(blob) {
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(reader.error || new Error('Could not read blob.'));
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function nodeIsVisible(node) {
+        let cur = node;
+        while (cur && cur.type !== 'root') {
+          if (cur.visible === false) return false;
+          cur = cur.parent;
+        }
+        return true;
+      }
+
+      function collectExportGraphicsFromNode(node, out = []) {
+        if (!node || !nodeIsVisible(node)) return out;
+        if (node.type === 'placemark' && node.graphic) out.push(node.graphic);
+        if (node.type === 'overlay' && node.graphic) out.push(node.graphic);
+        if (node.children) node.children.forEach(child => collectExportGraphicsFromNode(child, out));
+        return out;
+      }
+
+      function buildExportFoldersXml(node, assets, includeAssets, format) {
+        if (!node || !nodeIsVisible(node)) return '';
+        if (node.type === 'root') {
+          return node.children.map(child => buildExportFoldersXml(child, assets, includeAssets, format)).join('');
+        }
+        if (node.type === 'folder' || node.type === 'document' || node.type === 'dataset') {
+          const childrenXml = (node.children || []).map(child => buildExportFoldersXml(child, assets, includeAssets, format)).join('');
+          return `
+<Folder>
+  <name>${escapeKml(node.title || node.type)}</name>
+  ${childrenXml}
+</Folder>`;
+        }
+        if (node.type === 'overlay') {
+          const title = node.title || 'Image overlay';
+          const href = node.imageHref || node.graphic?.attributes?.href || '';
+          let exportedHref = resolveResourceHref(href);
+          if (includeAssets && format === 'kmz' && exportedHref) {
+            const fileName = `images/${sanitizeFileName(title)}_${node.id}${(exportedHref.match(/\.[a-z0-9]+$/i) || ['.png'])[0]}`;
+            exportedHref = fileName;
+            if (!assets[fileName]) {
+              assets[fileName] = exportedHref;
+            }
+          }
+          return `
+<GroundOverlay>
+  <name>${escapeKml(title)}</name>
+  ${node.description ? `<description>${escapeKml(node.description)}</description>` : ''}
+  <Icon><href>${escapeKml(exportedHref)}</href></Icon>
+  <LatLonBox>
+    <north>${node.extent?.ymax ?? 0}</north>
+    <south>${node.extent?.ymin ?? 0}</south>
+    <east>${node.extent?.xmax ?? 0}</east>
+    <west>${node.extent?.xmin ?? 0}</west>
+    <rotation>${Number(node.rotation) || 0}</rotation>
+  </LatLonBox>
+</GroundOverlay>`;
+        }
+        if (node.type === 'placemark') {
+          const graphic = node.graphic;
+          if (!graphic) return '';
+          return geometryToKmlPlacemark(graphic, node.title);
+        }
+        return '';
+      }
+
+      async function exportCurrentContent(format = 'kml') {
+        const hasAnything = importedRoot.children.length || markerLayer.graphics.length || measurementLayer.graphics.length;
+        if (!hasAnything) {
+          setStatus('Nothing to export.');
+          return;
+        }
+
+        const assets = {};
+        const bodyParts = [];
+
+        bodyParts.push(buildExportFoldersXml(importedRoot, assets, format === 'kmz', format));
+
+        const userGraphics = [];
+        markerLayer.graphics.forEach(g => {
+          const kind = String(g?.attributes?.kind || '').toLowerCase();
+          if (kind && !kind.endsWith('-label')) userGraphics.push(g);
+        });
+        measurementLayer.graphics.forEach(g => {
+          const kind = String(g?.attributes?.kind || '').toLowerCase();
+          if (kind === 'measure-point' || kind === 'pick' || g.geometry?.type === 'polyline' || g.geometry?.type === 'polygon') userGraphics.push(g);
+        });
+
+        if (userGraphics.length) {
+          const userXml = userGraphics.map(g => geometryToKmlPlacemark(g, g.attributes?.name || g.attributes?.title || 'User item')).filter(Boolean).join('');
+          if (userXml) {
+            bodyParts.push(`
+<Folder>
+  <name>User Created Items</name>
+  ${userXml}
+</Folder>`);
+          }
+        }
+
+        const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Earth Map Export</name>
+  ${bodyParts.filter(Boolean).join('\n')}
+</Document>
+</kml>`;
+
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        if (format === 'kml') {
+          const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `earth-map-export-${stamp}.kml`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          setStatus('Exported KML.');
+          return;
+        }
+
+        if (typeof JSZip === 'undefined') {
+          setStatus('JSZip is not available for KMZ export.');
+          return;
+        }
+
+        const zip = new JSZip();
+        zip.file('doc.kml', kml);
+
+        // Best-effort image packaging for overlays.
+        const overlayNodes = [];
+        (function walk(node) {
+          if (!node) return;
+          if (node.type === 'overlay' && node.imageHref) overlayNodes.push(node);
+          (node.children || []).forEach(walk);
+        })(importedRoot);
+
+        for (const node of overlayNodes) {
+          const href = resolveResourceHref(node.imageHref);
+          if (!href) continue;
+          try {
+            const res = await fetch(href);
+            const blob = await res.blob();
+            let ext = '.png';
+            const fromHref = (href.match(/\.[a-z0-9]+(?:$|\?)/i) || [])[0];
+            if (fromHref) ext = fromHref.split('?')[0];
+            const fileName = `images/${sanitizeFileName(node.title || 'overlay')}_${node.id}${ext}`;
+            zip.file(fileName, blob);
+          } catch (err) {
+            console.warn('Could not package overlay image:', err);
+          }
+        }
+
+        const kmzBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(kmzBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `earth-map-export-${stamp}.kmz`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('Exported KMZ.');
+      }
+
+      function createDistanceConeMarker(point, name, options = {}) {
+        const coneColor = options.coneColor || [255, 69, 0, 0.9];
+        const cone = new PointSymbol3D({
+          symbolLayers: [new ObjectSymbol3DLayer({
+            resource: { primitive: "inverted-cone" },
+            width: 0.8,
+            height: 1.5,
+            depth: 0.8,
+            material: { color: coneColor },
+            anchor: "bottom",
+            castShadows: true
+          })]
+        });
+
+        const coneGraphic = new Graphic({
+          geometry: point,
+          attributes: {
+            title: name,
+            name,
+            kind: options.kind || 'marker',
+            source: options.source || '',
+            description: options.description || '',
+            styleName: options.styleName || '',
+            lastDist: -1
+          },
+          symbol: cone
+        });
+
+        const labelPoint = new Point({
+          longitude: point.longitude ?? point.x,
+          latitude: point.latitude ?? point.y,
+          z: (Number(point.z) || 0) + 8,
+          spatialReference: point.spatialReference || { wkid: 4326 }
+        });
+
+        const labelGraphic = new Graphic({
+          geometry: labelPoint,
+          elevationInfo: { mode: 'relative-to-ground', offset: 8 },
+          attributes: {
+            title: name,
+            name,
+            kind: options.labelKind || 'label',
+            source: options.source || '',
+            description: options.description || '',
+            styleName: options.styleName || '',
+            lastDist: -1,
+            showDistance: true
+          },
+          symbol: new TextSymbol({
+            text: `${name}
+...`,
+            color: "#111",
+            haloColor: "#fff",
+            haloSize: 1.5,
+            font: { size: 11, family: "Segoe UI", weight: "bold" },
+            yoffset: -44
+          })
+        });
+
+        return { coneGraphic, labelGraphic };
+      }
+
+      function createPointGraphic(coords, title, style = {}, extra = {}) {
+        const point = new Point({
+          longitude: coords.longitude,
+          latitude: coords.latitude,
+          z: Number.isFinite(coords.z) ? coords.z : 0,
+          spatialReference: { wkid: 4326 }
+        });
+        const { coneGraphic, labelGraphic } = createDistanceConeMarker(point, title, {
+          kind: 'pin',
+          labelKind: 'pin-label',
+          coneColor: style.icon?.color || [255, 69, 0, 0.9],
+          description: extra.description || '',
+          source: extra.source || 'KML Point',
+          styleName: extra.styleName || 'inline'
+        });
+        coneGraphic.attributes = { ...coneGraphic.attributes, title, name: title, kind: 'pin', ...extra };
+        labelGraphic.attributes = { ...labelGraphic.attributes, title, name: title, kind: 'pin-label', ...extra, showDistance: true };
+        return [coneGraphic, labelGraphic];
+      }
+
+      function createLineGraphic(coords, title, style = {}, extra = {}) {
+        const lengthMeters = polylineLengthMeters(coords);
+        const elev = elevationStats(coords);
+        const durationMinutes = estimateDurationMinutes(lengthMeters, 'path', elev.gain || 0);
+        return new Graphic({
+          geometry: new Polyline({ paths: [coords.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0])] }),
+          symbol: new SimpleLineSymbol({
+            color: resolveStyleRgba(style.line?.color, [0,121,193,0.95]),
+            width: style.line?.width || 2
+          }),
+          attributes: {
+            title,
+            name: title,
+            kind: 'path',
+            lengthMeters,
+            lengthText: formatDistanceMeters(lengthMeters),
+            durationMinutes,
+            durationText: formatDurationMinutes(durationMinutes),
+            elevationGain: elev.gain,
+            elevationGainText: Number.isFinite(elev.gain) ? formatElevationMeters(elev.gain) : '—',
+            elevationLoss: elev.loss,
+            elevationLossText: Number.isFinite(elev.loss) ? formatElevationMeters(elev.loss) : '—',
+            heightRange: elev.range,
+            heightRangeText: Number.isFinite(elev.range) ? formatElevationMeters(elev.range) : '—',
+            ...extra
+          }
+        });
+      }
+
+            function createPolygonGraphic(coords, title, style = {}, extra = {}) {
+        const areaSqMeters = ringAreaSqMeters(coords);
+        const perimeterMeters = ringPerimeterMeters(coords);
+        const elev = elevationStats(coords);
+        const ring = coords.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0]);
+        const polygonGraphic = new Graphic({
+          geometry: new Polygon({ rings: [ring] }),
+          symbol: new SimpleFillSymbol({
+            color: resolveStyleRgba(style.poly?.color, [0,121,193,0.18]),
+            outline: {
+              color: (style.poly && style.poly.outline === false) ? [0, 0, 0, 0] : resolveStyleRgba(style.line?.color, [0,121,193,0.9]),
+              width: style.line?.width || 1.5
+            }
+          }),
+          attributes: {
+            title,
+            name: title,
+            kind: 'polygon',
+            areaSqMeters,
+            areaText: formatAreaSqMeters(areaSqMeters),
+            perimeterMeters,
+            perimeterText: formatDistanceMeters(perimeterMeters),
+            elevationGain: elev.gain,
+            elevationGainText: Number.isFinite(elev.gain) ? formatElevationMeters(elev.gain) : '—',
+            elevationLoss: elev.loss,
+            elevationLossText: Number.isFinite(elev.loss) ? formatElevationMeters(elev.loss) : '—',
+            heightRange: elev.range,
+            heightRangeText: Number.isFinite(elev.range) ? formatElevationMeters(elev.range) : '—',
+            ...extra
+          }
+        });
+
+        const centroid = coords.reduce((acc, p) => ({
+          longitude: acc.longitude + p.longitude / coords.length,
+          latitude: acc.latitude + p.latitude / coords.length,
+          z: acc.z + (Number.isFinite(p.z) ? p.z : 0) / coords.length
+        }), { longitude: 0, latitude: 0, z: 0 });
+
+        const labelGraphic = new Graphic({
+          geometry: new Point({
+            longitude: centroid.longitude,
+            latitude: centroid.latitude,
+            z: centroid.z + 2.5,
+            spatialReference: { wkid: 4326 }
+          }),
+          symbol: new TextSymbol({
+            text: title,
+            color: (style.label?.color && Array.isArray(style.label.color)) ? style.label.color : '#111',
+            haloColor: '#fff',
+            haloSize: 2,
+            font: { size: Math.max(11, Math.round((style.label?.scale || 1) * 11)), family: 'Segoe UI', weight: 'bold' }
+          }),
+          attributes: {
+            title,
+            name: title,
+            kind: 'polygon-label',
+            ...extra
+          }
+        });
+
+        return [polygonGraphic, labelGraphic];
+      }
+function createGroundOverlayGraphic(bounds, href, title, style = {}) {
+        const polygon = new Polygon({
+          rings: [[
+            [bounds.west, bounds.south],
+            [bounds.east, bounds.south],
+            [bounds.east, bounds.north],
+            [bounds.west, bounds.north],
+            [bounds.west, bounds.south]
+          ]]
+        });
+
+        return new Graphic({
+          geometry: polygon,
+          symbol: new PictureFillSymbol({
+            url: href,
+            outline: { color: [0, 0, 0, 0] }
+          }),
+          attributes: { title, name: title, kind: 'overlay', href, styleName: style.name || '' }
+        });
+      }
+
+      function parsePlacemark(el, styles, inheritedStyle = {}) {
+        const title = textOf(el, 'name') || 'Placemark';
+        const description = textOf(el, 'description') || '';
+        const localStyle = getPlacemarkStyle(el, styles) || {};
+        const style = mergeStyles(inheritedStyle, localStyle);
+        const graphics = [];
+        const pointEls = el.getElementsByTagName('Point');
+        const lineEls = el.getElementsByTagName('LineString');
+        const polygonEls = el.getElementsByTagName('Polygon');
+
+        for (const pointEl of pointEls) {
+          const coords = parseKmlCoordinates(textOf(pointEl, 'coordinates'));
+          if (coords[0]) graphics.push(...createPointGraphic(coords[0], title, style, { description, source: 'KML Point', styleName: textOf(el, 'styleUrl') || 'inline' }));
+        }
+        for (const lineEl of lineEls) {
+          const coords = parseKmlCoordinates(textOf(lineEl, 'coordinates'));
+          if (coords.length >= 2) graphics.push(createLineGraphic(coords, title, style, { description, source: 'KML LineString', styleName: textOf(el, 'styleUrl') || 'inline' }));
+        }
+        for (const polygonEl of polygonEls) {
+          const outer = polygonEl.getElementsByTagName('outerBoundaryIs')[0];
+          const linearRing = outer ? findFirst(outer, 'LinearRing') : findFirst(polygonEl, 'LinearRing');
+          const coords = parseKmlCoordinates(textOf(linearRing || polygonEl, 'coordinates'));
+          if (coords.length >= 3) graphics.push(...createPolygonGraphic(coords, title, style, { description, source: 'KML Polygon', styleName: textOf(el, 'styleUrl') || 'inline' }));
+        }
+
+        return { title, description, style, graphics };
+      }
+
+function parseGroundOverlay(el, styles, inheritedStyle = {}) {
+  const title = textOf(el, 'name') || 'Ground Overlay';
+  const description = textOf(el, 'description') || '';
+  const href = textOf(el, 'href');
+  const latLonBox = findFirst(el, 'LatLonBox');
+  const latLonQuad = findFirst(el, 'LatLonQuad') || findFirst(el, 'gx:LatLonQuad');
+  if (!href || (!latLonBox && !latLonQuad)) return null;
+
+  let georeference = null;
+  let footprintPoints = null;
+  let rotation = 0;
+  let extent = null;
+
+  if (latLonQuad) {
+    const coords = parseKmlCoordinates(textOf(latLonQuad, 'coordinates'));
+    if (coords.length >= 4) {
+      const pts = coords.slice(0, 4).map(([lon, lat]) => makePoint4326(lon, lat));
+      georeference = new CornersGeoreference({
+        topLeft: pts[0],
+        topRight: pts[1],
+        bottomRight: pts[2],
+        bottomLeft: pts[3]
+      });
+      footprintPoints = coords.slice(0, 4);
+    }
+  }
+
+  if (!georeference && latLonBox) {
+    const north = parseFloat(textOf(latLonBox, 'north'));
+    const south = parseFloat(textOf(latLonBox, 'south'));
+    const east = parseFloat(textOf(latLonBox, 'east'));
+    const west = parseFloat(textOf(latLonBox, 'west'));
+    if (![north, south, east, west].every(Number.isFinite)) return null;
+
+    rotation = parseFloat(textOf(latLonBox, 'rotation')) || 0;
+    georeference = buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotation);
+    footprintPoints = [
+      [west, south],
+      [east, south],
+      [east, north],
+      [west, north]
+    ];
+    extent = new Extent({ xmin: west, ymin: south, xmax: east, ymax: north, spatialReference: { wkid: 4326 } });
+  }
+
+  if (!georeference || !footprintPoints) return null;
+
+  const resolvedHref = resolveResourceHref(href);
+  const imageElement = new ImageElement({
+    image: resolvedHref,
+    georeference
+  });
+  const mediaLayer = new MediaLayer({
+    title,
+    source: [imageElement],
+    opacity: 0.85
+  });
+
+  const ring = footprintPoints.concat([footprintPoints[0]]);
+  const footprintGraphic = new Graphic({
+    geometry: new Polygon({ rings: [ring] }),
+    symbol: new SimpleFillSymbol({
+      color: [0, 0, 0, 0],
+      outline: { color: [0, 0, 0, 0], width: 0 }
+    }),
+    attributes: {
+      title,
+      name: title,
+      kind: 'overlay',
+      source: 'KML GroundOverlay',
+      href: resolvedHref,
+      rotation,
+      rotationText: `${rotation || 0}°`,
+      description
+    }
+  });
+
+  return {
+    id: makeId('overlay'),
+    title,
+    type: 'overlay',
+    expanded: true,
+    children: [],
+    parent: null,
+    visible: true,
+    mediaLayer,
+    graphic: footprintGraphic,
+    extent,
+    rotation,
+    opacity: 0.85,
+    imageHref: resolvedHref,
+    description,
+    georeferenceType: latLonQuad ? 'quad' : 'corners'
+  };
+}
+
+function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {}) {
+        const tag = getNodeTagName(el);
+        if (tag === 'Folder' || tag === 'Document') {
+          const nodeStyle = mergeStyles(inheritedStyle, getPlacemarkStyle(el, styles) || {});
+          const node = { id: makeId(tag.toLowerCase()), title: textOf(el, 'name') || tag, type: tag.toLowerCase(), kind: tag.toLowerCase(), expanded: true, children: [], parent, visible: true };
+          registerImportedNode(node);
+          const childrenEls = [...el.children].filter(child => ['Folder', 'Document', 'Placemark', 'GroundOverlay', 'ScreenOverlay'].includes(getNodeTagName(child)));
+          for (const childEl of childrenEls) {
+            if (getNodeTagName(childEl) === 'Placemark') {
+              const placemarkNode = parseKmlNode(childEl, node, styles, nodeStyle);
+              if (placemarkNode) node.children.push(placemarkNode);
+            } else if (getNodeTagName(childEl) === 'GroundOverlay') {
+              const overlayNode = parseKmlNode(childEl, node, styles, nodeStyle);
+              if (overlayNode) node.children.push(overlayNode);
+            } else {
+              const folderNode = parseKmlNode(childEl, node, styles, nodeStyle);
+              if (folderNode) node.children.push(folderNode);
+            }
+          }
+          return node;
+        }
+
+        if (tag === 'Placemark') {
+          const placemark = parsePlacemark(el, styles, inheritedStyle);
+          if (!placemark.graphics.length) return null;
+          const layer = makeGraphicLayer(placemark.title, placemark.graphics);
+          placemark.graphics.forEach(g => {
+            g.popupTemplate = {
+              title: '{name}',
+              content: ({ graphic }) => formatAttributesHtml(graphic)
+            };
+          });
+          const node = {
+            id: makeId('placemark'),
+            title: placemark.title,
+            type: 'placemark',
+            kind: placemark.graphics[0]?.attributes?.kind || 'pin',
+            expanded: true,
+            children: [],
+            parent,
+            layer,
+            visible: true,
+            description: placemark.description,
+            style: placemark.style,
+            geometry: placemark.graphics[0]?.geometry || null,
+            graphic: placemark.graphics[0] || null
+          };
+          layer.graphics.forEach(g => {
+            g.attributes = { ...(g.attributes || {}), name: placemark.title, description: placemark.description, styleName: textOf(el, 'styleUrl') || 'inline' };
+          });
+          registerImportedNode(node);
+          return node;
+        }
+
+        if (tag === 'GroundOverlay') {
+          const overlay = parseGroundOverlay(el, styles, inheritedStyle);
+          if (!overlay) return null;
+          overlay.parent = parent;
+          overlay.overlayLayer = makeGraphicLayer(`${overlay.title} footprint`, [overlay.graphic], { elevationInfo: { mode: 'on-the-ground' } });
+          overlay.overlayLayer.opacity = 0.0;
+          map.add(overlay.mediaLayer);
+          if (typeof map.reorder === 'function') {
+            try { map.reorder(overlay.mediaLayer, 0); } catch (err) {}
+          }
+          importedLayers.add(overlay.mediaLayer);
+          registerImportedNode(overlay);
+          return overlay;
+        }
+
+        if (tag === 'ScreenOverlay') {
+          const title = textOf(el, 'name') || 'Screen Overlay';
+          const description = textOf(el, 'description') || '';
+          const href = textOf(findFirst(el, 'Icon') || el, 'href') || textOf(el, 'href');
+          if (!href) return null;
+          const resolvedHref = resolveResourceHref(href);
+          const node = {
+            id: makeId('screenoverlay'),
+            title,
+            type: 'overlay',
+            kind: 'overlay',
+            expanded: true,
+            children: [],
+            parent,
+            visible: true,
+            graphic: new Graphic({
+              geometry: null,
+              attributes: {
+                title,
+                name: title,
+                kind: 'overlay',
+                source: 'KML ScreenOverlay',
+                href: resolvedHref,
+                description
+              }
+            })
+          };
+          registerImportedNode(node);
+          return node;
+        }
+
+        return null;
+      }
+
+      function collectKmlRoot(xml) {
+        const roots = [];
+        const styles = parseStyles(xml);
+        const kml = xml.documentElement;
+        if (!kml) return roots;
+        const children = [...kml.children].filter(child => ['Document', 'Folder', 'Placemark', 'GroundOverlay', 'ScreenOverlay'].includes(getNodeTagName(child)));
+        for (const child of children) {
+          const parsed = parseKmlNode(child, importedRoot, styles, {});
+          if (parsed) roots.push(parsed);
+        }
+        return roots;
+      }
+
+      function renderTreeNode(node) {
+        if (!nodeMatchesImportTypeFilter(node)) return null;
+        const hasChildren = node.children && node.children.length > 0;
+        const li = document.createElement('li');
+        li.className = 'tree-item';
+        li.dataset.kind = getNodeKind(node);
+
+        if (node.type === 'root') {
+          li.innerHTML = `<div class="tree-node"><span class="tree-label">${node.title}</span><span class="tree-meta">${node.children.length} items</span></div>`;
+          const children = document.createElement('ul');
+          children.className = 'tree-root';
+          node.children.forEach(child => { const rendered = renderTreeNode(child); if (rendered) children.appendChild(rendered); });
+          li.appendChild(children);
+          return li;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'tree-node';
+
+        const icon = document.createElement('span');
+        icon.className = `tree-kind ${getNodeKind(node)}`;
+        icon.textContent = getNodeIcon(node);
+        icon.title = getNodeTypeLabel(node);
+
+        const toggle = document.createElement('button');
+        toggle.className = 'tree-toggle';
+        toggle.type = 'button';
+        toggle.textContent = hasChildren ? (node.expanded ? '▾' : '▸') : '•';
+        toggle.title = hasChildren ? 'Expand/collapse' : 'Feature';
+        toggle.disabled = !hasChildren;
+        toggle.addEventListener('click', () => {
+          if (!hasChildren) return;
+          node.expanded = !node.expanded;
+          renderImportTree();
+        });
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'tree-checkbox';
+        checkbox.checked = node.visible !== false;
+        checkbox.title = 'Show or hide';
+        checkbox.addEventListener('change', () => {
+          setNodeVisibility(node, checkbox.checked);
+        });
+
+        const label = document.createElement('span');
+        label.className = 'tree-label';
+        label.textContent = node.title;
+
+        const meta = document.createElement('span');
+        meta.className = 'tree-meta';
+        meta.textContent = getNodeTypeLabel(node);
+
+        const go = document.createElement('button');
+        go.className = 'tree-go';
+        go.type = 'button';
+        go.textContent = '↗';
+        go.title = 'Teleport to item';
+        go.addEventListener('click', async () => {
+          try {
+            await goToNode(node);
+          } catch (err) {
+            console.error(err);
+            setStatus('Could not teleport to this item.');
+          }
+        });
+
+        const info = document.createElement('button');
+        info.className = 'tree-info';
+        info.type = 'button';
+        info.textContent = 'i';
+        info.title = 'More info';
+        info.addEventListener('click', () => {
+          if (getNodeKind(node) === 'overlay') {
+            openImportedEditor(node);
+            return;
+          }
+          const g = node.graphic || node.layer?.graphics?.getItemAt?.(0) || node.layer?.graphics?.at?.(0) || null;
+          if (g) openImportedInfo(g, g.geometry);
+        });
+
+        const remove = document.createElement('button');
+        remove.className = 'tree-remove';
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.title = 'Remove';
+        remove.addEventListener('click', () => {
+          removeNode(node);
+          renderImportTree();
+        });
+
+        row.append(icon, toggle, checkbox, label, meta, go, info, remove);
+
+        row.addEventListener('mouseenter', (event) => setActiveImportedNode(node, event));
+        row.addEventListener('mousemove', (event) => setActiveImportedNode(node, event));
+        row.addEventListener('mouseleave', () => {
+          if (highlightedImportedNode === node) highlightedImportedNode = null;
+          setNodeHighlight(node, false);
+          hideHover();
+        });
+
+        li.appendChild(row);
+
+        if (hasChildren && node.expanded) {
+          const children = document.createElement('ul');
+          children.className = 'tree-children';
+          node.children.forEach(child => { const rendered = renderTreeNode(child); if (rendered) children.appendChild(rendered); });
+          li.appendChild(children);
+        }
+
+        return li;
+      }
+
+      function renderImportTree() {
+        const host = document.getElementById('importTree');
+        if (!host) return;
+        host.innerHTML = '';
+        if (!importedRoot.children.length) {
+          const empty = document.createElement('div');
+          empty.style.fontSize = '11px';
+          empty.style.color = '#666';
+          empty.style.padding = '6px 2px';
+          empty.textContent = 'No KML/KMZ files imported yet.';
+          host.appendChild(empty);
+          return;
+        }
+        const list = document.createElement('ul');
+        list.className = 'tree-root';
+        importedRoot.children.forEach(child => list.appendChild(renderTreeNode(child)));
+        host.appendChild(list);
+      }
+
+      async function loadKmlFromFile(file) {
+        const lower = file.name.toLowerCase();
+        if (lower.endsWith('.kmz')) {
+          return await loadKmzTextFromBuffer(await file.arrayBuffer(), file.name);
+        }
+        clearImportedResources();
+        return await file.text();
+      }
+
+      async function importKmlOrKmz() {
+        const input = document.getElementById('kmlFileInput');
+        const file = input && input.files && input.files[0];
+        if (!file) { setStatus('Choose a KML or KMZ file first.'); return; }
+        try {
+          setStatus(`Importing ${file.name}...`);
+          const text = await loadKmlFromFile(file);
+          const xml = new DOMParser().parseFromString(text, 'application/xml');
+          if (xml.querySelector('parsererror')) throw new Error('The file could not be parsed as KML.');
+          const items = collectKmlRoot(xml);
+          if (!items.length) throw new Error('No folders, placemarks, or overlays were found.');
+          importedRoot.children.push(...items);
+          renderImportTree();
+          setStatus(`Imported ${file.name}`);
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message || 'Import failed.');
+        }
+      }
+
+      function findImportedGraphicAt(screenPoint) {
+        return view.hitTest(screenPoint).then(result => {
+          const hit = result.results.find(r => {
+            const g = r.graphic;
+            return g && (
+              (g.attributes && (g.attributes.name || g.attributes.title)) ||
+              importedLayers.has(r.layer) ||
+              importedLayers.has(g.layer)
+            );
+          });
+          return hit ? hit.graphic : null;
+        });
+      }
+      const buildingsLayer = new SceneLayer({
+        url: "https://basemaps3d.arcgis.com/arcgis/rest/services/OpenStreetMap3D_Buildings_v1/SceneServer"
+      });
+      map.add(buildingsLayer);
+
+      const timeSlider = document.getElementById("timeSlider");
+      const timeLabel = document.getElementById("timeLabel");
+      let rotationRequest = null;
+
+      function formatTime(totalMinutes) {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+      }
+
+      function updateLighting() {
+        const totalMinutes = Number(timeSlider.value);
+        timeLabel.textContent = formatTime(totalMinutes);
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        const sunDate = new Date();
+        sunDate.setHours(hours, minutes, 0, 0);
+
+        view.environment.lighting = { type: "sun", date: sunDate, directShadowsEnabled: true };
+      }
+
+      function parseCoords(input) {
+        if (!input) return null;
+        const m = String(input).trim().match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+        return m ? { lat: parseFloat(m[1]), lon: parseFloat(m[2]) } : null;
+      }
+
+      function setStatus(text) {
+        const el = document.getElementById("status"); if (el) el.textContent = text;
+      }
+
+      function setAmoState(state, label) {
+        const el = document.getElementById('amoState');
+        if (!el) return;
+        el.className = `amo-state ${state}`;
+        el.textContent = label;
+      }
+
+      function setLayerCollectionVisibility(layer, visible) {
+        if (!layer) return;
+        try { layer.visible = visible; } catch (_) {}
+        try { layer.opacity = visible ? 1 : 0; } catch (_) {}
+      }
+      function setActiveToolButton(activeId) {
+        ['btnPickLocation', 'btnMeasureDistance', 'btnMeasureArea'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.toggle('active', id === activeId);
+        });
+      }
+
+      function updateCoordOutput(html, extra = '') {
+        const el = document.getElementById('coordOutput');
+        if (!el) return;
+        el.innerHTML = html + (extra ? `<div style="margin-top:6px; opacity:.85">${extra}</div>` : '');
+      }
+
+      function copyTextToClipboard(text) {
+        if (!text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {});
+        }
+      }
+
+      function formatLatLon(point) {
+        if (!point) return null;
+        const lat = Number(point.latitude ?? point.y);
+        const lon = Number(point.longitude ?? point.x);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+        return { lat, lon, text: `${lat.toFixed(6)}, ${lon.toFixed(6)}` };
+      }
+
+      function toolPointGraphic(point, type = 'pick', pointIndex = -1) {
+        const isMeasure = type === 'measure' || type === 'measure-point';
+        return new Graphic({
+          geometry: point,
+          symbol: new SimpleMarkerSymbol({
+            color: isMeasure ? [0, 121, 193, 0.95] : [16, 185, 129, 0.95],
+            size: 10,
+            outline: { color: [255, 255, 255, 1], width: 1.2 }
+          }),
+          attributes: { kind: type, pointIndex }
+        });
+      }
+
+      function clearMeasurement() {
+        measurementLayer.removeAll();
+        toolState.mode = null;
+        toolState.points = [];
+        toolState.picked = null;
+        toolState.lastText = '';
+        setActiveToolButton(null);
+        updateCoordOutput('Click a tool, then choose a point on the map.');
+      }
+
+      function finishMeasurement() {
+        if (!toolState.mode) return;
+        if (toolState.mode === 'pick') {
+          toolState.mode = null;
+          setActiveToolButton(null);
+          return;
+        }
+        toolState.mode = null;
+        setActiveToolButton(null);
+        const lastText = toolState.lastText || 'Measurement complete.';
+        updateCoordOutput(lastText, 'Use Clear Measure to remove the drawn shapes.');
+      }
+
+      function setToolMode(mode) {
+        if (toolState.mode === mode) {
+          finishMeasurement();
+          return;
+        }
+        toolState.mode = mode;
+        toolState.points = mode === 'pick' ? [] : toolState.points;
+        setActiveToolButton(
+          mode === 'pick' ? 'btnPickLocation' :
+          mode === 'distance' ? 'btnMeasureDistance' :
+          mode === 'area' ? 'btnMeasureArea' : null
+        );
+        if (mode === 'pick') {
+          updateCoordOutput('Pick a location on the map to see its latitude and longitude.');
+        } else if (mode === 'distance') {
+          updateCoordOutput('Click points on the map to measure distance. Click the button again when done.');
+        } else if (mode === 'area') {
+          updateCoordOutput('Click points on the map to draw an area. Click the button again when done.');
+        }
+      }
+
+      function rebuildMeasurementGraphics() {
+        measurementLayer.removeAll();
+        const pts = toolState.points.slice();
+        if (!pts.length) return;
+
+        const graphics = [];
+        graphics.push(...pts.map((p, idx) => toolPointGraphic(p, 'measure-point', idx)));
+
+        if (toolState.mode === 'distance' && pts.length >= 2) {
+          const line = new Polyline({
+            paths: [pts.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0])],
+            spatialReference: { wkid: 4326 }
+          });
+          const total = polylineLengthMeters(pts);
+          const last = pts[pts.length - 1];
+          const label = new Graphic({
+            geometry: new Point({
+              longitude: last.longitude,
+              latitude: last.latitude,
+              z: (last.z || 0) + 20,
+              spatialReference: { wkid: 4326 }
+            }),
+            symbol: new TextSymbol({
+              text: `Distance: ${formatDistanceMeters(total)}`,
+              color: '#0f172a',
+              haloColor: '#ffffff',
+              haloSize: 2,
+              font: { size: 11, family: 'Segoe UI', weight: 'bold' }
+            })
+          });
+          graphics.push(new Graphic({
+            geometry: line,
+            symbol: new SimpleLineSymbol({ color: [0, 121, 193, 0.9], width: 3 })
+          }));
+          graphics.push(label);
+          toolState.lastText = `Distance: ${formatDistanceMeters(total)}`;
+        }
+
+        if (toolState.mode === 'area' && pts.length >= 3) {
+          const ring = pts.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0]);
+          const polygon = new Polygon({
+            rings: [ring],
+            spatialReference: { wkid: 4326 }
+          });
+          const area = ringAreaSqMeters(pts);
+          const perimeter = ringPerimeterMeters(pts);
+          const centroid = pts.reduce((acc, p) => ({
+            longitude: acc.longitude + p.longitude / pts.length,
+            latitude: acc.latitude + p.latitude / pts.length,
+            z: acc.z + (Number.isFinite(p.z) ? p.z : 0) / pts.length
+          }), { longitude: 0, latitude: 0, z: 0 });
+          const label = new Graphic({
+            geometry: new Point({
+              longitude: centroid.longitude,
+              latitude: centroid.latitude,
+              z: centroid.z + 20,
+              spatialReference: { wkid: 4326 }
+            }),
+            symbol: new TextSymbol({
+              text: `Area: ${formatAreaSqMeters(area)}\nPerimeter: ${formatDistanceMeters(perimeter)}`,
+              color: '#0f172a',
+              haloColor: '#ffffff',
+              haloSize: 2,
+              font: { size: 11, family: 'Segoe UI', weight: 'bold' }
+            })
+          });
+          graphics.push(new Graphic({
+            geometry: polygon,
+            symbol: new SimpleFillSymbol({
+              color: [14, 165, 233, 0.18],
+              outline: { color: [14, 165, 233, 0.95], width: 2 }
+            })
+          }));
+          graphics.push(label);
+          toolState.lastText = `Area: ${formatAreaSqMeters(area)} | Perimeter: ${formatDistanceMeters(perimeter)}`;
+        }
+
+        measurementLayer.addMany(graphics);
+      }
+
+      function removeLastMeasurementPoint() {
+        if (!toolState.points.length) return;
+        toolState.points.pop();
+        rebuildMeasurementGraphics();
+        if (!toolState.points.length) {
+          updateCoordOutput('Click a tool, then choose a point on the map.');
+          toolState.lastText = '';
+        } else {
+          updateCoordOutput(toolState.lastText || 'Measurement updated.', 'Press Backspace to remove the last point.');
+        }
+      }
+
+      function updateMeasurementPoint(index, mapPoint) {
+        if (index == null || index < 0 || index >= toolState.points.length || !mapPoint) return;
+        toolState.points[index] = new Point({
+          longitude: mapPoint.longitude ?? mapPoint.x,
+          latitude: mapPoint.latitude ?? mapPoint.y,
+          z: Number.isFinite(mapPoint.z) ? mapPoint.z : 0,
+          spatialReference: { wkid: 4326 }
+        });
+        rebuildMeasurementGraphics();
+        if (toolState.mode === 'distance' && toolState.points.length >= 2) {
+          updateCoordOutput(toolState.lastText, 'Drag points to adjust the line. Press Backspace to remove the last point.');
+        } else if (toolState.mode === 'area' && toolState.points.length >= 3) {
+          updateCoordOutput(toolState.lastText, 'Drag points to adjust the area. Press Backspace to remove the last point.');
+        }
+      }
+
+      function isMeasureToolActive() {
+        return toolState.mode === 'distance' || toolState.mode === 'area';
+      }
+
+      function addMeasurementPoint(mapPoint) {
+        const point = new Point({
+          longitude: mapPoint.longitude ?? mapPoint.x,
+          latitude: mapPoint.latitude ?? mapPoint.y,
+          z: Number.isFinite(mapPoint.z) ? mapPoint.z : 0,
+          spatialReference: { wkid: 4326 }
+        });
+        if (toolState.mode === 'pick') {
+          measurementLayer.removeAll();
+          measurementLayer.add(toolPointGraphic(point, 'pick'));
+          toolState.picked = point;
+          const ll = formatLatLon(point);
+          if (ll) {
+            const text = `<strong>Picked location</strong><br>Lat: ${ll.lat.toFixed(6)}<br>Lon: ${ll.lon.toFixed(6)}`;
+            updateCoordOutput(text, 'You can copy these coordinates with the button below.');
+            copyTextToClipboard(ll.text);
+            setStatus(`Picked coordinates: ${ll.text}`);
+          }
+          finishMeasurement();
+          return;
+        }
+
+        if (toolState.mode === 'distance' || toolState.mode === 'area') {
+          toolState.points.push(point);
+          rebuildMeasurementGraphics();
+          if (toolState.mode === 'distance' && toolState.points.length >= 2) {
+            updateCoordOutput(toolState.lastText, 'Click the button again when you want to stop measuring.');
+          } else if (toolState.mode === 'area' && toolState.points.length >= 3) {
+            updateCoordOutput(toolState.lastText, 'Click the button again when you want to stop measuring.');
+          } else if (toolState.mode === 'distance') {
+            updateCoordOutput('Click another point to continue measuring distance.');
+          } else {
+            updateCoordOutput('Click another point to continue drawing the area.');
+          }
+        }
+      }
+
+      function addMarkerGraphic(point, name) {
+        const { coneGraphic, labelGraphic } = createDistanceConeMarker(point, name, {
+          kind: 'marker',
+          labelKind: 'marker-label',
+          coneColor: [255, 69, 0, 0.9],
+          source: 'GPS Marker Tool'
+        });
+        markerLayer.addMany([coneGraphic, labelGraphic]);
+        return { coneGraphic, labelGraphic };
+      }
+
+      async function addGpsMarker() {
+        const name = (document.getElementById("markerName").value || "Point").trim();
+        const coords = parseCoords(document.getElementById("markerCoords").value);
+        if (!coords) { setStatus("Invalid coordinates. Use: Lat, Lon"); return; }
+
+        try {
+          const temp = new Point({ x: coords.lon, y: coords.lat, spatialReference: { wkid: 4326 } });
+          const ground = view.map && view.map.ground;
+          const res = ground && typeof ground.queryElevation === "function" ? await ground.queryElevation(temp) : null;
+          const p = res && res.geometry ? res.geometry : temp;
+          addMarkerGraphic(p, name);
+          await view.goTo({ target: p, tilt: 60 }, { duration: 1500 });
+          setStatus(`Placed marker: ${name}`);
+        } catch (e) { console.error(e); setStatus("Failed to place marker."); }
+      }
+
+      function updateDistanceLabelsForCollection(collection, camera) {
+        if (!collection || !camera) return;
+        collection.forEach(g => {
+          if (!g.attributes || !g.attributes.showDistance || !g.geometry) return;
+          if (typeof g.geometry.latitude !== 'number' || typeof g.geometry.longitude !== 'number') return;
+          const mp = g.geometry; const R = 6371e3;
+          const lat1 = camera.position.latitude * Math.PI / 180;
+          const lat2 = mp.latitude * Math.PI / 180;
+          const dLat = (mp.latitude - camera.position.latitude) * Math.PI / 180;
+          const dLon = (mp.longitude - camera.position.longitude) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const dist3D = Math.sqrt((R * c) ** 2 + (camera.position.z - (mp.z || 0)) ** 2);
+          if (Math.abs(dist3D - (g.attributes.lastDist ?? -1)) > 1) {
+            g.attributes.lastDist = dist3D;
+            const txt = dist3D > 1000 ? (dist3D / 1000).toFixed(2) + " km" : Math.round(dist3D) + " m";
+            const s = g.symbol.clone();
+            s.text = `${g.attributes.name}
+${txt}`;
+            g.symbol = s;
+          }
+        });
+      }
+
+      function updateMarkerLabels(camera) {
+        if (!camera) return;
+        updateDistanceLabelsForCollection(markerLayer.graphics, camera);
+        importedLayers.forEach(layer => {
+          if (layer && layer.graphics) updateDistanceLabelsForCollection(layer.graphics, camera);
+        });
+      }
+
+      function syncCameraStats(camera) {
+        const el = document.getElementById("camStats"); if (!el || !camera) return;
+        el.innerHTML = `<div>ALT: ${Math.round(camera.position.z).toLocaleString()}m</div><div>TILT: ${Math.round(camera.tilt)}°</div>`;
+        const tilt = document.getElementById("tiltSlider"); if (tilt) tilt.value = camera.tilt;
+      }
+
+      const UI_PREFS_KEY = 'earthControlsPrefsV1';
+      const SECTION_TAB_MAP = {
+        'Visual Style': 'map',
+        'Environment': 'map',
+        '3D Rendering': 'map',
+        'Navigation': 'tools',
+        'GPS Marker Tool': 'tools',
+        'Location & Measure': 'tools',
+        'KML / KMZ Import': 'imports',
+        'Map Type': 'settings',
+        'Shortcuts': 'settings'
+      };
+
+      function loadUiPrefs() {
+        try {
+          const raw = localStorage.getItem(UI_PREFS_KEY);
+          if (!raw) return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, mapType: 'topographic' };
+          const parsed = JSON.parse(raw);
+          return {
+            activeTab: ['map', 'tools', 'imports', 'settings'].includes(parsed.activeTab) ? parsed.activeTab : 'map',
+            compact: !!parsed.compact,
+            sections: parsed.sections && typeof parsed.sections === 'object' ? parsed.sections : {},
+            panelCollapsed: !!parsed.panelCollapsed,
+            mapType: ['topographic', 'satellite', 'hillshade'].includes(parsed.mapType) ? parsed.mapType : 'topographic',
+            
+          };
+        } catch (_) {
+          return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, mapType: 'topographic' };
+        }
+      }
+
+      const uiPrefs = loadUiPrefs();
+
+      function saveUiPrefs() {
+        try { localStorage.setItem(UI_PREFS_KEY, JSON.stringify(uiPrefs)); } catch (_) {}
+      }
+
+      function setPanelCollapsed(collapsed) {
+        const panel = document.getElementById('controlPanel');
+        if (!panel) return;
+        panel.classList.toggle('collapsed', collapsed);
+        uiPrefs.panelCollapsed = collapsed;
+        saveUiPrefs();
+      }
+
+      function setCompactMode(on) {
+        const panel = document.getElementById('controlPanel');
+        const checkbox = document.getElementById('toggleCompact');
+        if (panel) panel.classList.toggle('compact', on);
+        if (checkbox) checkbox.checked = on;
+        uiPrefs.compact = on;
+        saveUiPrefs();
+      }
+
+      function setActiveTab(tab) {
+        uiPrefs.activeTab = tab;
+        saveUiPrefs();
+        const content = document.querySelector('.panel-content');
+        if (!content) return;
+        content.dataset.activeTab = tab;
+        document.querySelectorAll('.panel-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+        document.querySelectorAll('.section-group[data-tab-group]').forEach(group => {
+          group.style.display = group.dataset.tabGroup === tab ? '' : 'none';
+        });
+      }
+
+      function initPanelSections() {
+        const content = document.querySelector('.panel-content');
+        if (!content || content.dataset.sectionsReady === '1') return;
+        content.dataset.sectionsReady = '1';
+
+        const nodes = Array.from(content.children);
+        let currentGroup = null;
+        nodes.forEach(node => {
+          if (!(node instanceof HTMLElement)) return;
+          if (node.classList.contains('panel-tabs') || node.classList.contains('compact-row')) return;
+          if (node.classList.contains('section-title')) {
+            const titleText = node.textContent.replace(/▾|▸/g, '').trim();
+            const group = document.createElement('div');
+            group.className = 'section-group';
+            group.dataset.tabGroup = SECTION_TAB_MAP[titleText] || 'settings';
+            node.parentNode.insertBefore(group, node);
+            group.appendChild(node);
+            const chevron = document.createElement('span');
+            chevron.className = 'section-chevron';
+            chevron.textContent = '▾';
+            node.appendChild(chevron);
+
+            const body = document.createElement('div');
+            body.className = 'section-body';
+            group.appendChild(body);
+            group._body = body;
+            currentGroup = group;
+
+            const savedCollapsed = !!uiPrefs.sections[titleText];
+            group.classList.toggle('collapsed', savedCollapsed);
+            node.addEventListener('click', () => {
+              group.classList.toggle('collapsed');
+              uiPrefs.sections[titleText] = group.classList.contains('collapsed');
+              saveUiPrefs();
+            });
+            return;
+          }
+          if (currentGroup && currentGroup._body) {
+            currentGroup._body.appendChild(node);
+          }
+        });
+      }
+
+      function initPanelTabs() {
+        document.querySelectorAll('.panel-tab').forEach(btn => {
+          btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+        });
+        const compact = document.getElementById('toggleCompact');
+        if (compact) {
+          compact.addEventListener('change', e => setCompactMode(e.target.checked));
+        }
+      }
+
+      // UI
+      timeSlider.addEventListener("input", updateLighting);
+      document.getElementById("btnAddMarker").addEventListener("click", addGpsMarker);
+      document.getElementById("btnPickLocation").addEventListener("click", () => setToolMode('pick'));
+      document.getElementById("btnMeasureDistance").addEventListener("click", () => setToolMode('distance'));
+      document.getElementById("btnMeasureArea").addEventListener("click", () => setToolMode('area'));
+      document.getElementById("btnClearMeasure").addEventListener("click", clearMeasurement);
+      document.getElementById("btnCopyCoords").addEventListener("click", () => copyTextToClipboard(toolState.picked ? `${toolState.picked.latitude.toFixed(6)}, ${toolState.picked.longitude.toFixed(6)}` : ''));
+      document.getElementById("btnImportKml").addEventListener("click", importKmlOrKmz);
+      document.getElementById("btnClearImports").addEventListener("click", clearImported);
+      const btnExportKml = document.getElementById("btnExportKml");
+      const btnExportKmz = document.getElementById("btnExportKmz");
+      if (btnExportKml) btnExportKml.addEventListener("click", () => exportCurrentContent('kml'));
+      if (btnExportKmz) btnExportKmz.addEventListener("click", () => exportCurrentContent('kmz'));
+      document.getElementById("toggleAMO").addEventListener("change", e => syncAbandonedMineOpenings(e.target.checked));
+      
+      const amoTypeMenuBtn = document.getElementById('amoTypeMenuBtn');
+      const amoTypeMenu = document.getElementById('amoTypeMenu');
+      const amoTypeAll = document.getElementById('amoTypeAll');
+      const amoTypeOptions = document.getElementById('amoTypeOptions');
+      if (amoTypeMenuBtn && amoTypeMenu) {
+        amoTypeMenuBtn.addEventListener('click', () => amoTypeMenu.classList.toggle('closed'));
+      }
+      if (amoTypeAll) {
+        amoTypeAll.addEventListener('change', () => {
+          if (!amoFeatureLayer) return;
+          amoSelectedTypes = amoTypeAll.checked ? new Set(amoAvailableTypes) : new Set();
+          if (amoTypeOptions) {
+            amoTypeOptions.querySelectorAll('input[type="checkbox"][data-amo-type]').forEach(cb => { cb.checked = amoTypeAll.checked; });
+          }
+          applyAmoTypeFilter();
+          updateAmoTypeMenuLabel();
+          if (amoFeatureLayer.visible) {
+            setStatus(amoSelectedTypes.size === amoAvailableTypes.length ? 'Abandoned Mine Openings showing all types.' : (amoSelectedTypes.size ? `Abandoned Mine Openings filtered to ${amoSelectedTypes.size} type(s).` : 'No Abandoned Mine Openings types selected.'));
+          }
+        });
+      }
+      if (amoTypeOptions) {
+        amoTypeOptions.addEventListener('change', (e) => {
+          const target = e.target;
+          if (!(target instanceof HTMLInputElement) || target.type !== 'checkbox' || !target.dataset.amoType) return;
+          const type = target.dataset.amoType;
+          if (target.checked) amoSelectedTypes.add(type); else amoSelectedTypes.delete(type);
+          const allBox = document.getElementById('amoTypeAll');
+          if (allBox) allBox.checked = amoSelectedTypes.size === amoAvailableTypes.length && amoAvailableTypes.length > 0;
+          applyAmoTypeFilter();
+          updateAmoTypeMenuLabel();
+          if (amoFeatureLayer && amoFeatureLayer.visible) {
+            setStatus(amoSelectedTypes.size === amoAvailableTypes.length ? 'Abandoned Mine Openings showing all types.' : (amoSelectedTypes.size ? `Abandoned Mine Openings filtered to ${amoSelectedTypes.size} type(s).` : 'No Abandoned Mine Openings types selected.'));
+          }
+        });
+      }
+      setAmoState('off', 'Off');
+      updateAmoTypeMenuLabel();
+      renderImportTypeFilters();
+      initPanelSections();
+      initPanelTabs();
+      setActiveTab(uiPrefs.activeTab || 'map');
+      setCompactMode(!!uiPrefs.compact);
+      applyMapType(uiPrefs.mapType || 'topographic', false);
+      setPanelCollapsed(!!uiPrefs.panelCollapsed);
+      document.getElementById("panelHeader").addEventListener("click", () => setPanelCollapsed(!document.getElementById("controlPanel").classList.contains("collapsed")));
+      document.getElementById("toggleTopo").addEventListener("change", e => applyMapType(e.target.checked ? "topographic" : "satellite"));
+      const mapTypeSelect = document.getElementById('mapTypeSelect');
+      if (mapTypeSelect) {
+        mapTypeSelect.addEventListener('change', e => applyMapType(e.target.value));
+      }
+      document.getElementById("toggleBuildings").addEventListener("change", e => buildingsLayer.visible = e.target.checked);
+      document.getElementById("toggleTerrain").addEventListener("change", e => map.ground.visible = e.target.checked);
+      document.getElementById("tiltSlider").addEventListener("input", e => view.goTo({ tilt: Number(e.target.value) }, { animate: false }));
+
+      const locations = {
+        halifax: { position: { longitude: -63.586949480877735, latitude: 44.65286231272531, z: 350 }, tilt: 65, heading: 140 },
+        nyc: { position: [-74.015, 40.702, 600], tilt: 78, heading: 0 },
+        everest: { position: [86.925, 27.988, 11000], tilt: 75, heading: 0 }
+      };
+
+      document.querySelectorAll('.location-btn').forEach(btn => btn.addEventListener('click', async e => { e.stopPropagation(); const loc = locations[btn.dataset.loc]; if (loc) await view.goTo(loc, { duration: 2500 }); }));
+
+      view.on('pointer-down', async (event) => {
+        try {
+          if (!isMeasureToolActive()) return;
+          const response = await view.hitTest(event);
+          const hit = (response.results || []).find(r => r.graphic && r.graphic.attributes && r.graphic.attributes.kind === 'measure-point');
+          if (hit && hit.graphic && Number.isInteger(hit.graphic.attributes.pointIndex)) {
+            toolState.dragIndex = hit.graphic.attributes.pointIndex;
+            toolState.dragging = true;
+            if (view.container) view.container.style.cursor = 'grabbing';
+          }
+        } catch (_) {}
+      });
+
+      view.on('pointer-move', async (event) => {
+        try {
+          if (isMeasureToolActive() && toolState.dragging && Number.isInteger(toolState.dragIndex) && event.mapPoint) {
+            updateMeasurementPoint(toolState.dragIndex, event.mapPoint);
+            return;
+          }
+          const graphic = await findImportedGraphicAt(event);
+          if (graphic) showHover(graphic, event);
+          else hideHover();
+        } catch (_) {
+          hideHover();
+        }
+      });
+
+      view.on('pointer-up', () => {
+        toolState.dragging = false;
+        toolState.dragIndex = null;
+        if (view.container) view.container.style.cursor = '';
+      });
+
+      view.on('click', async (event) => {
+        try {
+          if (toolState.mode) {
+            if (event.mapPoint) addMeasurementPoint(event.mapPoint);
+            return;
+          }
+          const graphic = await findImportedGraphicAt(event);
+          if (graphic) {
+            openImportedInfo(graphic, event.mapPoint || graphic.geometry);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      });
+
+      function rotate() {
+        if (!document.getElementById('toggleRotate').checked) return;
+        view.goTo({ heading: (view.camera.heading + 0.1) % 360 }, { animate: false });
+        rotationRequest = requestAnimationFrame(rotate);
+      }
+      document.getElementById('toggleRotate').addEventListener('change', e => { if (e.target.checked) rotate(); else if (rotationRequest) cancelAnimationFrame(rotationRequest); });
+
+      view.when(() => {
+        const statusEl = document.getElementById('status'); if (statusEl) statusEl.style.opacity = '0';
+        updateLighting();
+        renderImportTree();
+      });
+
+      if (reactiveUtils && typeof reactiveUtils.watch === "function") {
+        reactiveUtils.watch(() => view.camera, (camera) => { if (!camera) return; updateMarkerLabels(camera); syncCameraStats(camera); });
+      }
+    });
+  </script>
+</body>
+</html>
