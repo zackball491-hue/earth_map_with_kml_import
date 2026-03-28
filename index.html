@@ -110,7 +110,6 @@
 
     .stats { margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.55); border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; font-family: monospace; font-size: 11px; color: #475569; display: flex; justify-content: space-around; }
 
-
     .import-box { background: rgba(255,255,255,0.58); padding: 12px; border-radius: 14px; border: 1px solid rgba(148,163,184,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
     .import-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
     .import-row input[type=file] { width: 100%; font-size: 11px; }
@@ -157,6 +156,20 @@
 .preset-chip:hover { background: #fff; border-color: rgba(0,121,193,0.42); color: var(--primary); transform: translateY(-1px); }
 .preset-chip.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.18); }
 .detail-value { font-size: 11px; color: #64748b; font-weight: 700; margin-top: 2px; }
+  
+    .import-type-filters { display: grid; gap: 8px; margin: 8px 0 10px; }
+    .filter-preset-row { display: flex; gap: 8px; }
+    .filter-preset { flex: 1 1 0; border: 1px solid rgba(148,163,184,0.24); background: rgba(255,255,255,0.74); color: #334155; border-radius: 12px; padding: 8px 10px; font-size: 11px; font-weight: 800; cursor: pointer; transition: .15s ease; }
+    .filter-preset:hover { background: #fff; border-color: rgba(0,121,193,0.34); color: var(--primary); transform: translateY(-1px); }
+    .filter-preset.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.18); }
+    .type-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .type-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #334155; background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.22); border-radius: 999px; padding: 7px 10px; cursor: pointer; user-select: none; transition: .15s ease; }
+    .type-chip input { margin: 0; }
+    .type-chip:hover { background: rgba(255,255,255,0.92); border-color: rgba(0,121,193,0.24); color: var(--primary); }
+    .type-chip.active { background: rgba(0,121,193,0.10); border-color: rgba(0,121,193,0.30); color: var(--primary); }
+    .type-chip .chip-ico { font-size: 12px; }
+    .tree-item.filtered-out { display: none !important; }
+
   </style>
 </head>
 <body>
@@ -288,6 +301,11 @@
           <button class="action-btn" id="btnImportKml" style="margin-top:0;">Import Selected File</button>
           <button class="tree-toggle" id="btnClearImports" title="Remove all imported items">✕</button>
         </div>
+        <div class="import-row">
+          <button class="action-btn tool-btn" id="btnExportKml" style="margin-top:0; flex:1;">Export KML</button>
+          <button class="action-btn tool-btn" id="btnExportKmz" style="margin-top:0; flex:1;">Export KMZ</button>
+        </div>
+        <div class="import-type-filters" id="importTypeFilters"></div>
         <div class="tree-panel" id="importTree"></div>
       </div>
 
@@ -339,11 +357,12 @@
       "esri/layers/MediaLayer",
       "esri/layers/support/ImageElement",
       "esri/layers/support/ExtentAndRotationGeoreference",
+      "esri/layers/support/CornersGeoreference",
       "esri/symbols/PictureMarkerSymbol",
       "esri/symbols/PictureFillSymbol",
       "esri/geometry/Extent"
     ], function(
-      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, TileLayer, Graphic, Point, Polyline, Polygon, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
+      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, TileLayer, Graphic, Point, Polyline, Polygon, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
     ) {
       const map = new Map({
         basemap: "topo-vector",
@@ -420,8 +439,22 @@
         mode: null,
         points: [],
         picked: null,
-        lastText: ''
+        lastText: '',
+        dragIndex: null,
+        dragging: false
       };
+      const IMPORT_TYPE_ORDER = [
+        { kind: 'pin', label: 'Pins', icon: '📍' },
+        { kind: 'path', label: 'Paths', icon: '🛣' },
+        { kind: 'polygon', label: 'Polygons', icon: '⬟' },
+        { kind: 'overlay', label: 'Overlays', icon: '🖼' },
+        { kind: 'folder', label: 'Folders', icon: '📁' },
+        { kind: 'document', label: 'Documents', icon: '🗂' },
+        { kind: 'dataset', label: 'Datasets', icon: '⛏' },
+        { kind: 'unknown', label: 'Other', icon: '•' }
+      ];
+      let importTypeFilters = new Set(IMPORT_TYPE_ORDER.map(v => v.kind));
+
       const AMO_LAYER_URL = 'https://dawson.novascotia.ca/arcgis/rest/services/Hosted/Abandoned_Mine_Openings_Degree_of_Hazard_d010ns_ut83/FeatureServer/4';
       let amoFeatureLayer = null;
       let amoDatasetLoading = false;
@@ -462,6 +495,35 @@
       }
 
       function toRadians(v) { return v * Math.PI / 180; }
+function makePoint4326(lon, lat) {
+  return new Point({ x: lon, y: lat, spatialReference: { wkid: 4326 } });
+}
+
+function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotation = 0) {
+  const centerX = (west + east) / 2;
+  const centerY = (south + north) / 2;
+  const halfWidth = (east - west) / 2;
+  const halfHeight = (north - south) / 2;
+  const angle = toRadians(rotation || 0); // KML rotation is counterclockwise.
+
+  const rotate = (x, y) => ({
+    x: (x * Math.cos(angle)) - (y * Math.sin(angle)),
+    y: (x * Math.sin(angle)) + (y * Math.cos(angle))
+  });
+
+  const tl = rotate(-halfWidth, halfHeight);
+  const tr = rotate(halfWidth, halfHeight);
+  const br = rotate(halfWidth, -halfHeight);
+  const bl = rotate(-halfWidth, -halfHeight);
+
+  return new CornersGeoreference({
+    topLeft: makePoint4326(centerX + tl.x, centerY + tl.y),
+    topRight: makePoint4326(centerX + tr.x, centerY + tr.y),
+    bottomRight: makePoint4326(centerX + br.x, centerY + br.y),
+    bottomLeft: makePoint4326(centerX + bl.x, centerY + bl.y)
+  });
+}
+
 
       function normalizeResourceKey(href) {
         if (!href) return '';
@@ -868,6 +930,55 @@
         return '•';
       }
 
+      function setImportTypeFilterState(nextKinds) {
+        importTypeFilters = new Set(nextKinds);
+        if (importTypeFilters.size === 0) IMPORT_TYPE_ORDER.forEach(v => importTypeFilters.add(v.kind));
+        renderImportTypeFilters();
+        renderImportTree();
+      }
+
+      function renderImportTypeFilters() {
+        const host = document.getElementById('importTypeFilters');
+        if (!host) return;
+        const allActive = importTypeFilters.size === IMPORT_TYPE_ORDER.length;
+        const noneActive = importTypeFilters.size === 0;
+        host.innerHTML = `
+          <div class="filter-preset-row">
+            <button type="button" class="filter-preset ${allActive ? 'active' : ''}" data-filter-action="all">All</button>
+            <button type="button" class="filter-preset ${noneActive ? 'active' : ''}" data-filter-action="clear">None</button>
+          </div>
+          <div class="type-chip-grid">
+            ${IMPORT_TYPE_ORDER.map(item => {
+              const checked = importTypeFilters.has(item.kind) ? 'checked' : '';
+              return `<label class="type-chip ${checked ? 'active' : ''}" title="Show or hide ${escapeHtml(item.label)}"><input type="checkbox" data-import-type="${item.kind}" ${checked}><span class="chip-ico">${item.icon}</span><span>${escapeHtml(item.label)}</span></label>`;
+            }).join('')}
+          </div>
+        `;
+        host.querySelectorAll('input[data-import-type]').forEach(cb => {
+          cb.addEventListener('change', () => {
+            const kind = cb.dataset.importType;
+            if (!kind) return;
+            const next = new Set(importTypeFilters);
+            if (cb.checked) next.add(kind); else next.delete(kind);
+            setImportTypeFilterState(next);
+          });
+        });
+        host.querySelectorAll('[data-filter-action]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const action = btn.dataset.filterAction;
+            if (action === 'all') setImportTypeFilterState(IMPORT_TYPE_ORDER.map(v => v.kind));
+            if (action === 'clear') setImportTypeFilterState([]);
+          });
+        });
+      }
+
+      function nodeMatchesImportTypeFilter(node) {
+        if (!node) return false;
+        const kind = getNodeKind(node);
+        if (importTypeFilters.has(kind)) return true;
+        return !!(node.children && node.children.some(child => nodeMatchesImportTypeFilter(child)));
+      }
+
       function collectNodeGraphics(node, out = []) {
         if (!node) return out;
         if (node.graphic) out.push(node.graphic);
@@ -912,7 +1023,7 @@
             if (typeof layer.height === 'number') layer.height *= 1.18;
             if (typeof layer.depth === 'number') layer.depth *= 1.18;
             if (layer.material) {
-              const accent = kind === 'pin' ? [255, 204, 102, 1] : [96, 165, 250, 1];
+              const accent = kind === 'pin' ? 'rgba(255,204,102,1)' : 'rgba(96,165,250,1)';
               layer.material.color = accent;
             }
           }
@@ -921,8 +1032,8 @@
         }
 
         if (sym?.font && graphic.attributes?.showDistance) {
-          sym.color = [15, 23, 42, 1];
-          sym.haloColor = [255, 255, 255, 1];
+          sym.color = 'rgba(15,23,42,1)';
+          sym.haloColor = 'rgba(255,255,255,1)';
           sym.haloSize = (sym.haloSize || 1.5) + 1;
           sym.font = { ...(sym.font || {}), size: (sym.font?.size || 11) + 1, weight: 'bold' };
           graphic.symbol = sym;
@@ -931,14 +1042,11 @@
 
         if (geomType === 'polyline' && 'width' in sym) {
           sym.width = (sym.width || 2) + 2;
-          if (sym.color) sym.color = [245, 158, 11, 1];
           graphic.symbol = sym;
           return;
         }
 
         if (geomType === 'polygon' && sym) {
-          if (sym.color) sym.color = [14, 165, 233, 0.26];
-          if (sym.outline && sym.outline.color) sym.outline.color = [14, 165, 233, 1];
           if (sym.outline && typeof sym.outline.width === 'number') sym.outline.width = Math.max(sym.outline.width + 1, 2);
           graphic.symbol = sym;
           return;
@@ -1044,6 +1152,9 @@
         });
         if (graphics && graphics.length) layer.addMany(graphics);
         map.add(layer);
+        if (typeof map.reorder === 'function') {
+          try { map.reorder(layer, map.layers.length - 1); } catch (err) {}
+        }
         importedLayers.add(layer);
         return layer;
       }
@@ -1053,13 +1164,38 @@
       }
 
       function kmlColorToRgba(colorString, fallbackAlpha = 1) {
-        const s = String(colorString || '').trim();
+        let s = String(colorString || '').trim().replace(/^#/, '');
+        if (!s) return null;
+        if (/^[0-9a-fA-F]{6}$/.test(s)) {
+          const r = parseInt(s.slice(0, 2), 16);
+          const g = parseInt(s.slice(2, 4), 16);
+          const b = parseInt(s.slice(4, 6), 16);
+          return [r, g, b, clamp01(fallbackAlpha)];
+        }
         if (!/^[0-9a-fA-F]{8}$/.test(s)) return null;
         const a = parseInt(s.slice(0, 2), 16) / 255;
         const b = parseInt(s.slice(2, 4), 16);
         const g = parseInt(s.slice(4, 6), 16);
         const r = parseInt(s.slice(6, 8), 16);
         return [r, g, b, clamp01(Number.isFinite(a) ? a : fallbackAlpha)];
+      }
+
+      function rgbaToCssColor(rgba, fallback = 'rgba(0,121,193,0.95)') {
+        if (!Array.isArray(rgba) || rgba.length < 3) return fallback;
+        const [r, g, b, a = 1] = rgba;
+        if (![r, g, b].every(Number.isFinite)) return fallback;
+        return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${clamp01(Number.isFinite(a) ? a : 1)})`;
+      }
+
+      function resolveStyleColor(styleColor, fallback) {
+        const rgba = Array.isArray(styleColor) ? styleColor : kmlColorToRgba(styleColor);
+        return rgbaToCssColor(rgba, fallback);
+      }
+
+      function resolveStyleRgba(styleColor, fallback = [0,121,193,0.95]) {
+        if (Array.isArray(styleColor) && styleColor.length >= 3) return styleColor;
+        const rgba = kmlColorToRgba(styleColor);
+        return Array.isArray(rgba) ? rgba : fallback;
       }
 
       function parseKmlCoordinates(text) {
@@ -1160,6 +1296,17 @@
         return resolveStyle(textOf(el, 'styleUrl'), styles);
       }
 
+      function mergeStyles(base = {}, override = {}) {
+        return {
+          ...base,
+          ...override,
+          line: { ...(base.line || {}), ...(override.line || {}) },
+          poly: { ...(base.poly || {}), ...(override.poly || {}) },
+          icon: { ...(base.icon || {}), ...(override.icon || {}) },
+          label: { ...(base.label || {}), ...(override.label || {}) }
+        };
+      }
+
       function geometryToExtent(geometry) {
         if (!geometry) return null;
         if (geometry.type === 'point') {
@@ -1243,6 +1390,388 @@
         });
       }
 
+      function getNodePopupLocation(node) {
+        return node?.graphic?.geometry || node?.extent || node?.overlayLayer?.graphics?.getItemAt?.(0)?.geometry || null;
+      }
+
+      function openImportedEditor(node) {
+        if (!node) return;
+
+        const root = document.createElement('div');
+        root.style.display = 'grid';
+        root.style.gap = '10px';
+        root.style.minWidth = '260px';
+        root.style.maxWidth = '320px';
+
+        const titleLabel = document.createElement('label');
+        titleLabel.style.display = 'grid';
+        titleLabel.style.gap = '4px';
+        titleLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Name</span>';
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.value = node.title || '';
+        titleInput.placeholder = 'Item name';
+        titleLabel.appendChild(titleInput);
+        root.appendChild(titleLabel);
+
+        const isOverlay = getNodeKind(node) === 'overlay' || !!node.mediaLayer;
+        let opacityInput = null;
+        let rotationInput = null;
+
+        if (isOverlay) {
+          const opacityLabel = document.createElement('label');
+          opacityLabel.style.display = 'grid';
+          opacityLabel.style.gap = '4px';
+          opacityLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Opacity</span>';
+          opacityInput = document.createElement('input');
+          opacityInput.type = 'range';
+          opacityInput.min = '0';
+          opacityInput.max = '100';
+          opacityInput.step = '1';
+          opacityInput.value = String(Math.round((node.mediaLayer?.opacity ?? node.opacity ?? 0.85) * 100));
+          opacityLabel.appendChild(opacityInput);
+          root.appendChild(opacityLabel);
+
+          const rotationLabel = document.createElement('label');
+          rotationLabel.style.display = 'grid';
+          rotationLabel.style.gap = '4px';
+          rotationLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Rotation</span>';
+          rotationInput = document.createElement('input');
+          rotationInput.type = 'range';
+          rotationInput.min = '-180';
+          rotationInput.max = '180';
+          rotationInput.step = '1';
+          rotationInput.value = String(Number.isFinite(node.rotation) ? node.rotation : 0);
+          rotationLabel.appendChild(rotationInput);
+          root.appendChild(rotationLabel);
+
+          const href = node.imageHref || node.graphic?.attributes?.href;
+          if (href) {
+            const previewWrap = document.createElement('div');
+            previewWrap.style.display = 'grid';
+            previewWrap.style.gap = '6px';
+            previewWrap.innerHTML = '<div style="font-size:12px;font-weight:700;color:#334155;">Image preview</div>';
+            const img = document.createElement('img');
+            img.src = resolveResourceHref(href);
+            img.alt = node.title || 'overlay preview';
+            img.style.width = '100%';
+            img.style.maxHeight = '140px';
+            img.style.objectFit = 'contain';
+            img.style.borderRadius = '10px';
+            img.style.background = 'rgba(255,255,255,0.65)';
+            img.style.border = '1px solid rgba(148,163,184,0.2)';
+            previewWrap.appendChild(img);
+            root.appendChild(previewWrap);
+          }
+        }
+
+        const btnRow = document.createElement('div');
+        btnRow.style.display = 'flex';
+        btnRow.style.gap = '8px';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'action-btn';
+        saveBtn.style.marginTop = '0';
+        saveBtn.textContent = 'Save changes';
+        saveBtn.addEventListener('click', () => {
+          const nextTitle = titleInput.value.trim() || node.title || 'Imported item';
+          node.title = nextTitle;
+
+          if (node.graphic?.attributes) {
+            node.graphic.attributes.title = nextTitle;
+            node.graphic.attributes.name = nextTitle;
+          }
+
+          if (node.layer?.graphics) {
+            node.layer.graphics.forEach(g => {
+              if (g?.attributes) {
+                g.attributes.title = nextTitle;
+                g.attributes.name = nextTitle;
+              }
+            });
+          }
+
+          if (isOverlay) {
+            const nextOpacity = clamp01((Number(opacityInput?.value) || 85) / 100);
+            node.opacity = nextOpacity;
+            if (node.mediaLayer) node.mediaLayer.opacity = nextOpacity;
+
+            const nextRotation = Number(rotationInput?.value) || 0;
+            node.rotation = nextRotation;
+
+            if (node.graphic?.attributes) {
+              node.graphic.attributes.rotation = nextRotation;
+              node.graphic.attributes.rotationText = `${nextRotation}°`;
+            }
+          }
+
+          renderImportTree();
+          view.popup.close();
+          setStatus(`Updated ${nextTitle}.`);
+        });
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tree-toggle';
+        closeBtn.type = 'button';
+        closeBtn.textContent = '✕';
+        closeBtn.title = 'Close';
+        closeBtn.addEventListener('click', () => view.popup.close());
+
+        btnRow.append(saveBtn, closeBtn);
+        root.appendChild(btnRow);
+
+        view.popup.open({
+          title: `Edit ${node.title || 'Imported item'}`,
+          content: root,
+          location: getNodePopupLocation(node)
+        });
+      }
+
+      function escapeKml(value) {
+        return escapeHtml(String(value ?? '')).replace(/\r?\n/g, ' ');
+      }
+
+      function kmlCoordinatesFromPoint(point) {
+        const lon = Number(point.longitude ?? point.x);
+        const lat = Number(point.latitude ?? point.y);
+        const z = Number.isFinite(point.z) ? point.z : 0;
+        return `${lon},${lat},${z}`;
+      }
+
+      function kmlCoordinatesFromArray(coords) {
+        return coords.map(c => `${Number(c[0])},${Number(c[1])},${Number.isFinite(c[2]) ? Number(c[2]) : 0}`).join(' ');
+      }
+
+      function geometryToKmlPlacemark(graphic, fallbackName = 'Item') {
+        if (!graphic || !graphic.geometry) return '';
+        const attrs = graphic.attributes || {};
+        const name = attrs.name || attrs.title || fallbackName;
+        const desc = attrs.description || '';
+        const kind = String(attrs.kind || '').toLowerCase();
+        if (kind.endsWith('-label') || graphic.symbol?.type === 'text') return '';
+
+        const addExtendedData = () => {
+          const rows = [];
+          const keys = ['kind', 'source', 'styleName', 'distanceText', 'areaText', 'perimeterText', 'lengthText', 'durationText', 'elevationGainText', 'elevationLossText', 'heightRangeText'];
+          keys.forEach(k => {
+            if (attrs[k] !== undefined && attrs[k] !== null && attrs[k] !== '') {
+              rows.push(`<Data name="${escapeHtml(k)}"><value>${escapeKml(attrs[k])}</value></Data>`);
+            }
+          });
+          return rows.length ? `<ExtendedData>${rows.join('')}</ExtendedData>` : '';
+        };
+
+        const g = graphic.geometry;
+        if (g.type === 'point') {
+          const lon = g.longitude ?? g.x;
+          const lat = g.latitude ?? g.y;
+          const z = Number.isFinite(g.z) ? g.z : 0;
+          return `
+<Placemark>
+  <name>${escapeKml(name)}</name>
+  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
+  ${addExtendedData()}
+  <Point><coordinates>${lon},${lat},${z}</coordinates></Point>
+</Placemark>`;
+        }
+        if (g.type === 'polyline') {
+          const coords = g.paths?.[0] || [];
+          if (!coords.length) return '';
+          return `
+<Placemark>
+  <name>${escapeKml(name)}</name>
+  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
+  ${addExtendedData()}
+  <LineString><tessellate>1</tessellate><coordinates>${kmlCoordinatesFromArray(coords)}</coordinates></LineString>
+</Placemark>`;
+        }
+        if (g.type === 'polygon') {
+          const ring = g.rings?.[0] || [];
+          if (!ring.length) return '';
+          const coords = ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) ? [...ring, ring[0]] : ring;
+          return `
+<Placemark>
+  <name>${escapeKml(name)}</name>
+  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
+  ${addExtendedData()}
+  <Polygon><outerBoundaryIs><LinearRing><tessellate>1</tessellate><coordinates>${kmlCoordinatesFromArray(coords)}</coordinates></LinearRing></outerBoundaryIs></Polygon>
+</Placemark>`;
+        }
+        return '';
+      }
+
+      function sanitizeFileName(name) {
+        return String(name || 'file').replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, '_').slice(0, 80);
+      }
+
+      async function blobToDataUrl(blob) {
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(reader.error || new Error('Could not read blob.'));
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function nodeIsVisible(node) {
+        let cur = node;
+        while (cur && cur.type !== 'root') {
+          if (cur.visible === false) return false;
+          cur = cur.parent;
+        }
+        return true;
+      }
+
+      function collectExportGraphicsFromNode(node, out = []) {
+        if (!node || !nodeIsVisible(node)) return out;
+        if (node.type === 'placemark' && node.graphic) out.push(node.graphic);
+        if (node.type === 'overlay' && node.graphic) out.push(node.graphic);
+        if (node.children) node.children.forEach(child => collectExportGraphicsFromNode(child, out));
+        return out;
+      }
+
+      function buildExportFoldersXml(node, assets, includeAssets, format) {
+        if (!node || !nodeIsVisible(node)) return '';
+        if (node.type === 'root') {
+          return node.children.map(child => buildExportFoldersXml(child, assets, includeAssets, format)).join('');
+        }
+        if (node.type === 'folder' || node.type === 'document' || node.type === 'dataset') {
+          const childrenXml = (node.children || []).map(child => buildExportFoldersXml(child, assets, includeAssets, format)).join('');
+          return `
+<Folder>
+  <name>${escapeKml(node.title || node.type)}</name>
+  ${childrenXml}
+</Folder>`;
+        }
+        if (node.type === 'overlay') {
+          const title = node.title || 'Image overlay';
+          const href = node.imageHref || node.graphic?.attributes?.href || '';
+          let exportedHref = resolveResourceHref(href);
+          if (includeAssets && format === 'kmz' && exportedHref) {
+            const fileName = `images/${sanitizeFileName(title)}_${node.id}${(exportedHref.match(/\.[a-z0-9]+$/i) || ['.png'])[0]}`;
+            exportedHref = fileName;
+            if (!assets[fileName]) {
+              assets[fileName] = exportedHref;
+            }
+          }
+          return `
+<GroundOverlay>
+  <name>${escapeKml(title)}</name>
+  ${node.description ? `<description>${escapeKml(node.description)}</description>` : ''}
+  <Icon><href>${escapeKml(exportedHref)}</href></Icon>
+  <LatLonBox>
+    <north>${node.extent?.ymax ?? 0}</north>
+    <south>${node.extent?.ymin ?? 0}</south>
+    <east>${node.extent?.xmax ?? 0}</east>
+    <west>${node.extent?.xmin ?? 0}</west>
+    <rotation>${Number(node.rotation) || 0}</rotation>
+  </LatLonBox>
+</GroundOverlay>`;
+        }
+        if (node.type === 'placemark') {
+          const graphic = node.graphic;
+          if (!graphic) return '';
+          return geometryToKmlPlacemark(graphic, node.title);
+        }
+        return '';
+      }
+
+      async function exportCurrentContent(format = 'kml') {
+        const hasAnything = importedRoot.children.length || markerLayer.graphics.length || measurementLayer.graphics.length;
+        if (!hasAnything) {
+          setStatus('Nothing to export.');
+          return;
+        }
+
+        const assets = {};
+        const bodyParts = [];
+
+        bodyParts.push(buildExportFoldersXml(importedRoot, assets, format === 'kmz', format));
+
+        const userGraphics = [];
+        markerLayer.graphics.forEach(g => {
+          const kind = String(g?.attributes?.kind || '').toLowerCase();
+          if (kind && !kind.endsWith('-label')) userGraphics.push(g);
+        });
+        measurementLayer.graphics.forEach(g => {
+          const kind = String(g?.attributes?.kind || '').toLowerCase();
+          if (kind === 'measure-point' || kind === 'pick' || g.geometry?.type === 'polyline' || g.geometry?.type === 'polygon') userGraphics.push(g);
+        });
+
+        if (userGraphics.length) {
+          const userXml = userGraphics.map(g => geometryToKmlPlacemark(g, g.attributes?.name || g.attributes?.title || 'User item')).filter(Boolean).join('');
+          if (userXml) {
+            bodyParts.push(`
+<Folder>
+  <name>User Created Items</name>
+  ${userXml}
+</Folder>`);
+          }
+        }
+
+        const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Earth Map Export</name>
+  ${bodyParts.filter(Boolean).join('\n')}
+</Document>
+</kml>`;
+
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        if (format === 'kml') {
+          const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `earth-map-export-${stamp}.kml`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          setStatus('Exported KML.');
+          return;
+        }
+
+        if (typeof JSZip === 'undefined') {
+          setStatus('JSZip is not available for KMZ export.');
+          return;
+        }
+
+        const zip = new JSZip();
+        zip.file('doc.kml', kml);
+
+        // Best-effort image packaging for overlays.
+        const overlayNodes = [];
+        (function walk(node) {
+          if (!node) return;
+          if (node.type === 'overlay' && node.imageHref) overlayNodes.push(node);
+          (node.children || []).forEach(walk);
+        })(importedRoot);
+
+        for (const node of overlayNodes) {
+          const href = resolveResourceHref(node.imageHref);
+          if (!href) continue;
+          try {
+            const res = await fetch(href);
+            const blob = await res.blob();
+            let ext = '.png';
+            const fromHref = (href.match(/\.[a-z0-9]+(?:$|\?)/i) || [])[0];
+            if (fromHref) ext = fromHref.split('?')[0];
+            const fileName = `images/${sanitizeFileName(node.title || 'overlay')}_${node.id}${ext}`;
+            zip.file(fileName, blob);
+          } catch (err) {
+            console.warn('Could not package overlay image:', err);
+          }
+        }
+
+        const kmzBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(kmzBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `earth-map-export-${stamp}.kmz`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('Exported KMZ.');
+      }
+
       function createDistanceConeMarker(point, name, options = {}) {
         const coneColor = options.coneColor || [255, 69, 0, 0.9];
         const cone = new PointSymbol3D({
@@ -1274,12 +1803,13 @@
         const labelPoint = new Point({
           longitude: point.longitude ?? point.x,
           latitude: point.latitude ?? point.y,
-          z: (point.z || 0),
+          z: (Number(point.z) || 0) + 8,
           spatialReference: point.spatialReference || { wkid: 4326 }
         });
 
         const labelGraphic = new Graphic({
           geometry: labelPoint,
+          elevationInfo: { mode: 'relative-to-ground', offset: 8 },
           attributes: {
             title: name,
             name,
@@ -1296,7 +1826,8 @@
             color: "#111",
             haloColor: "#fff",
             haloSize: 1.5,
-            font: { size: 11, family: "Segoe UI", weight: "bold" }
+            font: { size: 11, family: "Segoe UI", weight: "bold" },
+            yoffset: -44
           })
         });
 
@@ -1330,7 +1861,7 @@
         return new Graphic({
           geometry: new Polyline({ paths: [coords.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0])] }),
           symbol: new SimpleLineSymbol({
-            color: style.line?.color || [0, 121, 193, 0.95],
+            color: resolveStyleRgba(style.line?.color, [0,121,193,0.95]),
             width: style.line?.width || 2
           }),
           attributes: {
@@ -1352,16 +1883,17 @@
         });
       }
 
-      function createPolygonGraphic(coords, title, style = {}, extra = {}) {
+            function createPolygonGraphic(coords, title, style = {}, extra = {}) {
         const areaSqMeters = ringAreaSqMeters(coords);
         const perimeterMeters = ringPerimeterMeters(coords);
         const elev = elevationStats(coords);
-        return new Graphic({
-          geometry: new Polygon({ rings: [coords.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0])] }),
+        const ring = coords.map(p => [p.longitude, p.latitude, Number.isFinite(p.z) ? p.z : 0]);
+        const polygonGraphic = new Graphic({
+          geometry: new Polygon({ rings: [ring] }),
           symbol: new SimpleFillSymbol({
-            color: style.poly?.color || [0, 121, 193, 0.18],
+            color: resolveStyleRgba(style.poly?.color, [0,121,193,0.18]),
             outline: {
-              color: style.line?.color || [0, 121, 193, 0.9],
+              color: (style.poly && style.poly.outline === false) ? [0, 0, 0, 0] : resolveStyleRgba(style.line?.color, [0,121,193,0.9]),
               width: style.line?.width || 1.5
             }
           }),
@@ -1382,9 +1914,38 @@
             ...extra
           }
         });
-      }
 
-      function createGroundOverlayGraphic(bounds, href, title, style = {}) {
+        const centroid = coords.reduce((acc, p) => ({
+          longitude: acc.longitude + p.longitude / coords.length,
+          latitude: acc.latitude + p.latitude / coords.length,
+          z: acc.z + (Number.isFinite(p.z) ? p.z : 0) / coords.length
+        }), { longitude: 0, latitude: 0, z: 0 });
+
+        const labelGraphic = new Graphic({
+          geometry: new Point({
+            longitude: centroid.longitude,
+            latitude: centroid.latitude,
+            z: centroid.z + 2.5,
+            spatialReference: { wkid: 4326 }
+          }),
+          symbol: new TextSymbol({
+            text: title,
+            color: (style.label?.color && Array.isArray(style.label.color)) ? style.label.color : '#111',
+            haloColor: '#fff',
+            haloSize: 2,
+            font: { size: Math.max(11, Math.round((style.label?.scale || 1) * 11)), family: 'Segoe UI', weight: 'bold' }
+          }),
+          attributes: {
+            title,
+            name: title,
+            kind: 'polygon-label',
+            ...extra
+          }
+        });
+
+        return [polygonGraphic, labelGraphic];
+      }
+function createGroundOverlayGraphic(bounds, href, title, style = {}) {
         const polygon = new Polygon({
           rings: [[
             [bounds.west, bounds.south],
@@ -1405,10 +1966,11 @@
         });
       }
 
-      function parsePlacemark(el, styles) {
+      function parsePlacemark(el, styles, inheritedStyle = {}) {
         const title = textOf(el, 'name') || 'Placemark';
         const description = textOf(el, 'description') || '';
-        const style = getPlacemarkStyle(el, styles) || {};
+        const localStyle = getPlacemarkStyle(el, styles) || {};
+        const style = mergeStyles(inheritedStyle, localStyle);
         const graphics = [];
         const pointEls = el.getElementsByTagName('Point');
         const lineEls = el.getElementsByTagName('LineString');
@@ -1426,93 +1988,124 @@
           const outer = polygonEl.getElementsByTagName('outerBoundaryIs')[0];
           const linearRing = outer ? findFirst(outer, 'LinearRing') : findFirst(polygonEl, 'LinearRing');
           const coords = parseKmlCoordinates(textOf(linearRing || polygonEl, 'coordinates'));
-          if (coords.length >= 3) graphics.push(createPolygonGraphic(coords, title, style, { description, source: 'KML Polygon', styleName: textOf(el, 'styleUrl') || 'inline' }));
+          if (coords.length >= 3) graphics.push(...createPolygonGraphic(coords, title, style, { description, source: 'KML Polygon', styleName: textOf(el, 'styleUrl') || 'inline' }));
         }
 
         return { title, description, style, graphics };
       }
 
-      function parseGroundOverlay(el, styles) {
-        const title = textOf(el, 'name') || 'Ground Overlay';
-        const description = textOf(el, 'description') || '';
-        const href = textOf(el, 'href');
-        const latLonBox = findFirst(el, 'LatLonBox');
-        if (!href || !latLonBox) return null;
+function parseGroundOverlay(el, styles, inheritedStyle = {}) {
+  const title = textOf(el, 'name') || 'Ground Overlay';
+  const description = textOf(el, 'description') || '';
+  const href = textOf(el, 'href');
+  const latLonBox = findFirst(el, 'LatLonBox');
+  const latLonQuad = findFirst(el, 'LatLonQuad') || findFirst(el, 'gx:LatLonQuad');
+  if (!href || (!latLonBox && !latLonQuad)) return null;
 
-        const north = parseFloat(textOf(latLonBox, 'north'));
-        const south = parseFloat(textOf(latLonBox, 'south'));
-        const east = parseFloat(textOf(latLonBox, 'east'));
-        const west = parseFloat(textOf(latLonBox, 'west'));
-        if (![north, south, east, west].every(Number.isFinite)) return null;
+  let georeference = null;
+  let footprintPoints = null;
+  let rotation = 0;
+  let extent = null;
 
-        const rotation = parseFloat(textOf(latLonBox, 'rotation')) || 0;
-        const extent = new Extent({ xmin: west, ymin: south, xmax: east, ymax: north, spatialReference: { wkid: 4326 } });
-        const georeference = new ExtentAndRotationGeoreference({ extent, rotation });
-        const resolvedHref = resolveResourceHref(href);
-        const imageElement = new ImageElement({ image: resolvedHref, georeference });
-        const mediaLayer = new MediaLayer({
-          title,
-          source: [imageElement],
-          opacity: 0.85
-        });
+  if (latLonQuad) {
+    const coords = parseKmlCoordinates(textOf(latLonQuad, 'coordinates'));
+    if (coords.length >= 4) {
+      const pts = coords.slice(0, 4).map(([lon, lat]) => makePoint4326(lon, lat));
+      georeference = new CornersGeoreference({
+        topLeft: pts[0],
+        topRight: pts[1],
+        bottomRight: pts[2],
+        bottomLeft: pts[3]
+      });
+      footprintPoints = coords.slice(0, 4);
+    }
+  }
 
-        const footprintGraphic = new Graphic({
-          geometry: new Polygon({
-            rings: [[
-              [west, south],
-              [east, south],
-              [east, north],
-              [west, north],
-              [west, south]
-            ]]
-          }),
-          symbol: new SimpleFillSymbol({
-            color: [0, 0, 0, 0],
-            outline: { color: [0, 0, 0, 0], width: 0 }
-          }),
-          attributes: {
-            title,
-            name: title,
-            kind: 'overlay',
-            source: 'KML GroundOverlay',
-            href: resolvedHref,
-            rotation,
-            rotationText: `${rotation || 0}°`,
-            description
-          }
-        });
+  if (!georeference && latLonBox) {
+    const north = parseFloat(textOf(latLonBox, 'north'));
+    const south = parseFloat(textOf(latLonBox, 'south'));
+    const east = parseFloat(textOf(latLonBox, 'east'));
+    const west = parseFloat(textOf(latLonBox, 'west'));
+    if (![north, south, east, west].every(Number.isFinite)) return null;
 
-        return {
-          id: makeId('overlay'),
-          title,
-          type: 'overlay',
-          expanded: true,
-          children: [],
-          parent: null,
-          visible: true,
-          mediaLayer,
-          graphic: footprintGraphic,
-          extent,
-          rotation,
-          description
-        };
-      }
+    rotation = parseFloat(textOf(latLonBox, 'rotation')) || 0;
+    georeference = buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotation);
+    footprintPoints = [
+      [west, south],
+      [east, south],
+      [east, north],
+      [west, north]
+    ];
+    extent = new Extent({ xmin: west, ymin: south, xmax: east, ymax: north, spatialReference: { wkid: 4326 } });
+  }
 
-      function parseKmlNode(el, parent = importedRoot, styles = {}) {
+  if (!georeference || !footprintPoints) return null;
+
+  const resolvedHref = resolveResourceHref(href);
+  const imageElement = new ImageElement({
+    image: resolvedHref,
+    georeference
+  });
+  const mediaLayer = new MediaLayer({
+    title,
+    source: [imageElement],
+    opacity: 0.85
+  });
+
+  const ring = footprintPoints.concat([footprintPoints[0]]);
+  const footprintGraphic = new Graphic({
+    geometry: new Polygon({ rings: [ring] }),
+    symbol: new SimpleFillSymbol({
+      color: [0, 0, 0, 0],
+      outline: { color: [0, 0, 0, 0], width: 0 }
+    }),
+    attributes: {
+      title,
+      name: title,
+      kind: 'overlay',
+      source: 'KML GroundOverlay',
+      href: resolvedHref,
+      rotation,
+      rotationText: `${rotation || 0}°`,
+      description
+    }
+  });
+
+  return {
+    id: makeId('overlay'),
+    title,
+    type: 'overlay',
+    expanded: true,
+    children: [],
+    parent: null,
+    visible: true,
+    mediaLayer,
+    graphic: footprintGraphic,
+    extent,
+    rotation,
+    opacity: 0.85,
+    imageHref: resolvedHref,
+    description,
+    georeferenceType: latLonQuad ? 'quad' : 'corners'
+  };
+}
+
+function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {}) {
         const tag = getNodeTagName(el);
         if (tag === 'Folder' || tag === 'Document') {
+          const nodeStyle = mergeStyles(inheritedStyle, getPlacemarkStyle(el, styles) || {});
           const node = { id: makeId(tag.toLowerCase()), title: textOf(el, 'name') || tag, type: tag.toLowerCase(), kind: tag.toLowerCase(), expanded: true, children: [], parent, visible: true };
           registerImportedNode(node);
           const childrenEls = [...el.children].filter(child => ['Folder', 'Document', 'Placemark', 'GroundOverlay', 'ScreenOverlay'].includes(getNodeTagName(child)));
           for (const childEl of childrenEls) {
             if (getNodeTagName(childEl) === 'Placemark') {
-              const placemarkNode = parseKmlNode(childEl, node, styles);
+              const placemarkNode = parseKmlNode(childEl, node, styles, nodeStyle);
               if (placemarkNode) node.children.push(placemarkNode);
             } else if (getNodeTagName(childEl) === 'GroundOverlay') {
-              const overlayNode = parseKmlNode(childEl, node, styles);
+              const overlayNode = parseKmlNode(childEl, node, styles, nodeStyle);
               if (overlayNode) node.children.push(overlayNode);
             } else {
-              const folderNode = parseKmlNode(childEl, node, styles);
+              const folderNode = parseKmlNode(childEl, node, styles, nodeStyle);
               if (folderNode) node.children.push(folderNode);
             }
           }
@@ -1520,7 +2113,7 @@
         }
 
         if (tag === 'Placemark') {
-          const placemark = parsePlacemark(el, styles);
+          const placemark = parsePlacemark(el, styles, inheritedStyle);
           if (!placemark.graphics.length) return null;
           const layer = makeGraphicLayer(placemark.title, placemark.graphics);
           placemark.graphics.forEach(g => {
@@ -1552,12 +2145,15 @@
         }
 
         if (tag === 'GroundOverlay') {
-          const overlay = parseGroundOverlay(el, styles);
+          const overlay = parseGroundOverlay(el, styles, inheritedStyle);
           if (!overlay) return null;
           overlay.parent = parent;
           overlay.overlayLayer = makeGraphicLayer(`${overlay.title} footprint`, [overlay.graphic], { elevationInfo: { mode: 'on-the-ground' } });
           overlay.overlayLayer.opacity = 0.0;
           map.add(overlay.mediaLayer);
+          if (typeof map.reorder === 'function') {
+            try { map.reorder(overlay.mediaLayer, 0); } catch (err) {}
+          }
           importedLayers.add(overlay.mediaLayer);
           registerImportedNode(overlay);
           return overlay;
@@ -1604,22 +2200,24 @@
         if (!kml) return roots;
         const children = [...kml.children].filter(child => ['Document', 'Folder', 'Placemark', 'GroundOverlay', 'ScreenOverlay'].includes(getNodeTagName(child)));
         for (const child of children) {
-          const parsed = parseKmlNode(child, importedRoot, styles);
+          const parsed = parseKmlNode(child, importedRoot, styles, {});
           if (parsed) roots.push(parsed);
         }
         return roots;
       }
 
       function renderTreeNode(node) {
+        if (!nodeMatchesImportTypeFilter(node)) return null;
         const hasChildren = node.children && node.children.length > 0;
         const li = document.createElement('li');
         li.className = 'tree-item';
+        li.dataset.kind = getNodeKind(node);
 
         if (node.type === 'root') {
           li.innerHTML = `<div class="tree-node"><span class="tree-label">${node.title}</span><span class="tree-meta">${node.children.length} items</span></div>`;
           const children = document.createElement('ul');
           children.className = 'tree-root';
-          node.children.forEach(child => children.appendChild(renderTreeNode(child)));
+          node.children.forEach(child => { const rendered = renderTreeNode(child); if (rendered) children.appendChild(rendered); });
           li.appendChild(children);
           return li;
         }
@@ -1681,6 +2279,10 @@
         info.textContent = 'i';
         info.title = 'More info';
         info.addEventListener('click', () => {
+          if (getNodeKind(node) === 'overlay') {
+            openImportedEditor(node);
+            return;
+          }
           const g = node.graphic || node.layer?.graphics?.getItemAt?.(0) || node.layer?.graphics?.at?.(0) || null;
           if (g) openImportedInfo(g, g.geometry);
         });
@@ -1710,7 +2312,7 @@
         if (hasChildren && node.expanded) {
           const children = document.createElement('ul');
           children.className = 'tree-children';
-          node.children.forEach(child => children.appendChild(renderTreeNode(child)));
+          node.children.forEach(child => { const rendered = renderTreeNode(child); if (rendered) children.appendChild(rendered); });
           li.appendChild(children);
         }
 
@@ -1857,8 +2459,8 @@
         return { lat, lon, text: `${lat.toFixed(6)}, ${lon.toFixed(6)}` };
       }
 
-      function toolPointGraphic(point, type = 'pick') {
-        const isMeasure = type === 'measure';
+      function toolPointGraphic(point, type = 'pick', pointIndex = -1) {
+        const isMeasure = type === 'measure' || type === 'measure-point';
         return new Graphic({
           geometry: point,
           symbol: new SimpleMarkerSymbol({
@@ -1866,7 +2468,7 @@
             size: 10,
             outline: { color: [255, 255, 255, 1], width: 1.2 }
           }),
-          attributes: { kind: type }
+          attributes: { kind: type, pointIndex }
         });
       }
 
@@ -1920,7 +2522,7 @@
         if (!pts.length) return;
 
         const graphics = [];
-        graphics.push(...pts.map((p, idx) => toolPointGraphic(p, idx === 0 ? 'start' : 'measure')));
+        graphics.push(...pts.map((p, idx) => toolPointGraphic(p, 'measure-point', idx)));
 
         if (toolState.mode === 'distance' && pts.length >= 2) {
           const line = new Polyline({
@@ -1992,6 +2594,38 @@
         }
 
         measurementLayer.addMany(graphics);
+      }
+
+      function removeLastMeasurementPoint() {
+        if (!toolState.points.length) return;
+        toolState.points.pop();
+        rebuildMeasurementGraphics();
+        if (!toolState.points.length) {
+          updateCoordOutput('Click a tool, then choose a point on the map.');
+          toolState.lastText = '';
+        } else {
+          updateCoordOutput(toolState.lastText || 'Measurement updated.', 'Press Backspace to remove the last point.');
+        }
+      }
+
+      function updateMeasurementPoint(index, mapPoint) {
+        if (index == null || index < 0 || index >= toolState.points.length || !mapPoint) return;
+        toolState.points[index] = new Point({
+          longitude: mapPoint.longitude ?? mapPoint.x,
+          latitude: mapPoint.latitude ?? mapPoint.y,
+          z: Number.isFinite(mapPoint.z) ? mapPoint.z : 0,
+          spatialReference: { wkid: 4326 }
+        });
+        rebuildMeasurementGraphics();
+        if (toolState.mode === 'distance' && toolState.points.length >= 2) {
+          updateCoordOutput(toolState.lastText, 'Drag points to adjust the line. Press Backspace to remove the last point.');
+        } else if (toolState.mode === 'area' && toolState.points.length >= 3) {
+          updateCoordOutput(toolState.lastText, 'Drag points to adjust the area. Press Backspace to remove the last point.');
+        }
+      }
+
+      function isMeasureToolActive() {
+        return toolState.mode === 'distance' || toolState.mode === 'area';
       }
 
       function addMeasurementPoint(mapPoint) {
@@ -2225,6 +2859,10 @@ ${txt}`;
       document.getElementById("btnCopyCoords").addEventListener("click", () => copyTextToClipboard(toolState.picked ? `${toolState.picked.latitude.toFixed(6)}, ${toolState.picked.longitude.toFixed(6)}` : ''));
       document.getElementById("btnImportKml").addEventListener("click", importKmlOrKmz);
       document.getElementById("btnClearImports").addEventListener("click", clearImported);
+      const btnExportKml = document.getElementById("btnExportKml");
+      const btnExportKmz = document.getElementById("btnExportKmz");
+      if (btnExportKml) btnExportKml.addEventListener("click", () => exportCurrentContent('kml'));
+      if (btnExportKmz) btnExportKmz.addEventListener("click", () => exportCurrentContent('kmz'));
       document.getElementById("toggleAMO").addEventListener("change", e => syncAbandonedMineOpenings(e.target.checked));
       
       const amoTypeMenuBtn = document.getElementById('amoTypeMenuBtn');
@@ -2265,6 +2903,7 @@ ${txt}`;
       }
       setAmoState('off', 'Off');
       updateAmoTypeMenuLabel();
+      renderImportTypeFilters();
       initPanelSections();
       initPanelTabs();
       setActiveTab(uiPrefs.activeTab || 'map');
@@ -2289,14 +2928,37 @@ ${txt}`;
 
       document.querySelectorAll('.location-btn').forEach(btn => btn.addEventListener('click', async e => { e.stopPropagation(); const loc = locations[btn.dataset.loc]; if (loc) await view.goTo(loc, { duration: 2500 }); }));
 
+      view.on('pointer-down', async (event) => {
+        try {
+          if (!isMeasureToolActive()) return;
+          const response = await view.hitTest(event);
+          const hit = (response.results || []).find(r => r.graphic && r.graphic.attributes && r.graphic.attributes.kind === 'measure-point');
+          if (hit && hit.graphic && Number.isInteger(hit.graphic.attributes.pointIndex)) {
+            toolState.dragIndex = hit.graphic.attributes.pointIndex;
+            toolState.dragging = true;
+            if (view.container) view.container.style.cursor = 'grabbing';
+          }
+        } catch (_) {}
+      });
+
       view.on('pointer-move', async (event) => {
         try {
+          if (isMeasureToolActive() && toolState.dragging && Number.isInteger(toolState.dragIndex) && event.mapPoint) {
+            updateMeasurementPoint(toolState.dragIndex, event.mapPoint);
+            return;
+          }
           const graphic = await findImportedGraphicAt(event);
           if (graphic) showHover(graphic, event);
           else hideHover();
         } catch (_) {
           hideHover();
         }
+      });
+
+      view.on('pointer-up', () => {
+        toolState.dragging = false;
+        toolState.dragIndex = null;
+        if (view.container) view.container.style.cursor = '';
       });
 
       view.on('click', async (event) => {
