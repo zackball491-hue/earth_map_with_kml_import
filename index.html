@@ -6,6 +6,7 @@
   <title>3D Earth Map - Pro Controls</title>
 
   <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
     :root {
@@ -33,7 +34,6 @@
       box-shadow: var(--shadow); pointer-events: none; transition: opacity 0.5s, transform 0.5s;
     }
 
-        /* Right-side control panel: main app settings and tools live here. */
     .panel {
       position: absolute; right: 20px; top: 20px; bottom: auto; z-index: 1000;
       background: linear-gradient(180deg, rgba(18, 24, 38, 0.90), rgba(255, 255, 255, 0.88));
@@ -45,7 +45,7 @@
 
     .panel.collapsed { width: 48px; height: 48px; border-radius: 24px; overflow: hidden; }
 
-    .panel-header { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; position: relative; background: linear-gradient(135deg, rgba(0, 121, 193, 0.18), rgba(255, 255, 255, 0.18)); border-bottom: 1px solid rgba(255,255,255,0.18); }
+    .panel-header { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; position: relative; background: linear-gradient(135deg, rgba(0, 121, 193, 0.18), rgba(255, 255, 255, 0.18)); border-bottom: 1px solid rgba(255,255,255,0.18); }
     .panel-header h3 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.2px; color: #f8fafc; text-transform: none; }
     .toggle-icon { font-size: 12px; color: #e2e8f0; }
     .panel.collapsed .toggle-icon { display: none; }
@@ -56,7 +56,6 @@
     .panel-content { padding: 14px 18px 18px 18px; overflow-y: auto; scrollbar-width: thin; }
 
 
-        /* Left-side Places sidebar: user content, imports, and tree actions stay separated from the main controls. */
     .imports-sidebar {
       position: absolute;
       left: 20px;
@@ -77,8 +76,12 @@
     }
     .imports-sidebar.collapsed {
       width: 48px;
+      height: 48px;
       max-width: 48px;
+      top: 20px;
+      bottom: auto;
       border-radius: 24px;
+      overflow: hidden;
     }
     .imports-sidebar-header {
       padding: 16px 18px;
@@ -87,6 +90,7 @@
       justify-content: space-between;
       cursor: pointer;
       user-select: none;
+      touch-action: manipulation;
       position: relative;
       background: linear-gradient(135deg, rgba(0, 121, 193, 0.18), rgba(255, 255, 255, 0.18));
       border-bottom: 1px solid rgba(255,255,255,0.18);
@@ -125,10 +129,10 @@
     .imports-sidebar .section-title { margin-top: 0; }
     .imports-sidebar .tree-panel { max-height: calc(100vh - 360px); }
     .imports-sidebar .import-box { margin-top: 10px; }
-    .places-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
-    .places-tab { border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,0.62); color: #334155; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 9px 10px; cursor: pointer; transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease; }
-    .places-tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.92); border-color: rgba(0,121,193,0.28); color: var(--primary); }
-    .places-tab.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.16); }
+    .places-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .places-tab { display:flex; align-items:center; justify-content:center; gap:8px; border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,0.70); color: #334155; font-size: 12px; font-weight: 800; border-radius: 16px; padding: 11px 12px; cursor: pointer; transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease; box-shadow: 0 6px 14px rgba(15,23,42,0.05); }
+    .places-tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.96); border-color: rgba(0,121,193,0.28); color: var(--primary); box-shadow: 0 10px 18px rgba(15,23,42,0.08); }
+    .places-tab.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 12px 22px rgba(0,121,193,0.18); }
     .places-pane.hidden { display: none; }
     .places-pane { display: block; }
     .feature-editor { display: grid; gap: 10px; min-width: 260px; max-width: 320px; }
@@ -137,12 +141,46 @@
     .mini-label { font-size:12px; font-weight:700; color:#334155; margin-bottom:2px; }
     @media (max-width: 1100px) {
       .imports-sidebar { width: 320px; max-width: calc(100vw - 340px); }
+      .panel { width: 304px; }
+      .panel-tabs, .places-tabs { gap: 8px; }
+      .panel-tab, .places-tab { padding: 10px 10px; font-size: 11px; }
+    }
+    @media (max-width: 760px) {
+      .panel, .imports-sidebar { left: 10px; right: 10px; width: auto; max-width: none; }
+      .panel { top: 10px; }
+      .imports-sidebar { top: 10px; bottom: auto; max-height: 48vh; }
+      .panel-content, .imports-sidebar-content { padding: 12px; }
+      .panel-tab, .places-tab { border-radius: 14px; }
+      .type-chip-grid, .filter-preset-row { grid-template-columns: 1fr; }
+      .type-chip { padding: 8px 9px; }
     }
 
-    .panel-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; padding: 0 0 2px; }
-    .panel-tab { border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,0.58); color: #334155; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 8px 10px; cursor: pointer; transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease; }
-    .panel-tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.86); border-color: rgba(0,121,193,0.28); color: var(--primary); }
-    .panel-tab.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.16); }
+    @media (max-width: 768px) {
+      .imports-sidebar {
+        left: 12px;
+        top: 12px;
+        bottom: auto;
+        width: min(320px, calc(100vw - 24px));
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+      }
+      .imports-sidebar.collapsed {
+        width: 48px;
+        height: 48px;
+        max-width: 48px;
+        top: 12px;
+        bottom: auto;
+      }
+      .imports-sidebar-content {
+        max-height: calc(100vh - 72px);
+      }
+    }
+
+    .panel-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; padding: 0 0 2px; }
+    .panel-tab { display:flex; align-items:center; justify-content:center; gap:8px; border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,0.68); color: #334155; font-size: 12px; font-weight: 800; border-radius: 16px; padding: 11px 12px; cursor: pointer; transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease; box-shadow: 0 6px 14px rgba(15,23,42,0.05); }
+    .panel-tab i, .places-tab i { font-size: 0.95em; }
+    .panel-tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.94); border-color: rgba(0,121,193,0.28); color: var(--primary); box-shadow: 0 10px 18px rgba(15,23,42,0.08); }
+    .panel-tab.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 12px 22px rgba(0,121,193,0.18); }
     .compact-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: 2px 0 10px; padding: 8px 10px; border: 1px solid rgba(148,163,184,0.16); border-radius: 12px; background: rgba(255,255,255,0.44); }
     .compact-row .compact-label { display:flex; flex-direction:column; gap:2px; min-width:0; }
     .compact-row .compact-label strong { font-size: 12px; color:#0f172a; }
@@ -158,7 +196,7 @@
     .panel.compact .tree-panel { max-height: 180px; }
     .section-group { margin-bottom: 4px; }
     .section-group.collapsed .section-body { display: none; }
-    .section-title { font-weight: 800; text-transform: uppercase; font-size: 10px; color: #64748b; margin: 18px 0 10px 0; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+    .section-title { font-weight: 800; text-transform: uppercase; font-size: 10px; color: #64748b; margin: 18px 0 10px 0; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; }
     .section-title::after { content: ""; flex: 1; height: 1px; background: rgba(148, 163, 184, 0.18); margin-left: 10px; }
     .section-chevron { margin-left: 8px; font-size: 11px; color: #94a3b8; transition: transform .2s ease; }
     .section-group.collapsed .section-chevron { transform: rotate(-90deg); }
@@ -190,8 +228,9 @@
     .coord-output { margin-top: 10px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.78); border: 1px solid rgba(148,163,184,0.18); font-size: 12px; color: #0f172a; line-height: 1.35; }
     .coord-actions { display:flex; gap:8px; margin-top:8px; }
 
-    .location-btn { text-align: left; width: 100%; background: rgba(255,255,255,0.64); border: 1px solid rgba(148,163,184,0.2); padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; margin-bottom: 6px; transition: transform .15s ease, background .15s ease, border-color .15s ease; }
-    .location-btn:hover { background: #fff; border-color: rgba(0,121,193,0.38); color: var(--primary); transform: translateY(-1px); }
+    .location-btn { text-align: left; width: 100%; background: rgba(255,255,255,0.74); border: 1px solid rgba(148,163,184,0.2); padding: 10px 12px; border-radius: 14px; cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease; box-shadow: 0 6px 14px rgba(15,23,42,0.04); }
+    .location-btn i { width: 16px; text-align: center; color: var(--primary); }
+    .location-btn:hover { background: #fff; border-color: rgba(0,121,193,0.38); color: var(--primary); transform: translateY(-1px); box-shadow: 0 10px 18px rgba(15,23,42,0.07); }
 
     .stats { margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.55); border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; font-family: monospace; font-size: 11px; color: #475569; display: flex; justify-content: space-around; }
 
@@ -206,17 +245,24 @@
     .tree-label { flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .tree-meta { font-size: 10px; color: #64748b; }
     .tree-kind { width: 20px; height: 20px; border-radius: 999px; display: grid; place-items: center; flex: 0 0 auto; font-size: 12px; line-height: 1; border: 1px solid rgba(148,163,184,0.28); background: rgba(255,255,255,0.92); box-shadow: inset 0 1px 0 rgba(255,255,255,0.65); }
+    .tree-kind i { font-size: 10px; line-height: 1; }
+    .tree-node-root { display:flex !important; align-items:center; gap:6px; }
     .tree-kind.folder { color: #0f172a; background: rgba(148,163,184,0.16); }
     .tree-kind.document { color: #7c3aed; background: rgba(124,58,237,0.14); }
     .tree-kind.overlay { color: #0ea5e9; background: rgba(14,165,233,0.14); }
     .tree-kind.pin { color: #dc2626; background: rgba(220,38,38,0.14); }
     .tree-kind.path { color: #b45309; background: rgba(245,158,11,0.16); }
     .tree-kind.polygon { color: #047857; background: rgba(16,185,129,0.16); }
+    .tree-kind.dataset { color: #0f766e; background: rgba(20,184,166,0.14); }
     .tree-kind.unknown { color: #334155; background: rgba(148,163,184,0.12); }
-    .tree-toggle { width: 18px; height: 18px; border: 1px solid rgba(148,163,184,0.28); border-radius: 6px; background: rgba(255,255,255,0.82); cursor: pointer; display: grid; place-items: center; font-size: 11px; color: #334155; }
+    .tree-toggle, .tree-go, .tree-info, .tree-edit, .tree-remove { width: 22px; height: 22px; border: 1px solid rgba(148,163,184,0.24); border-radius: 8px; background: rgba(255,255,255,0.90); cursor: pointer; display: inline-grid; place-items: center; font-size: 10px; color: #334155; flex: 0 0 auto; box-shadow: 0 4px 10px rgba(15,23,42,0.04); padding: 0; }
+    .tree-toggle:hover, .tree-go:hover, .tree-info:hover, .tree-edit:hover, .tree-remove:hover { transform: translateY(-1px); }
+    .tree-toggle { background: rgba(255,255,255,0.96); }
     .tree-toggle:hover { border-color: rgba(0,121,193,0.5); color: var(--primary); }
-    .tree-checkbox { transform: scale(0.9); }
-    .amo-state { display:inline-flex; align-items:center; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.02em; }
+    .tree-toggle:disabled { opacity: 0.45; cursor: default; transform: none; }
+    .tree-checkbox { transform: scale(0.88); margin: 0 1px; }
+    .tree-actions { display: flex; gap: 4px; flex-wrap: nowrap; margin-left: auto; justify-content: flex-end; align-items: center; flex: 0 0 auto; min-width: max-content; }
+    .amo-state { display:inline-flex; align-items:center; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.02em; white-space: nowrap; }
     .amo-state.off { background: rgba(100,116,139,0.14); color:#475569; }
     .amo-state.loading { background: rgba(245,158,11,0.18); color:#92400e; }
     .amo-state.loaded { background: rgba(16,185,129,0.18); color:#065f46; }
@@ -243,22 +289,21 @@
 .detail-value { font-size: 11px; color: #64748b; font-weight: 700; margin-top: 2px; }
   
     .import-type-filters { display: grid; gap: 8px; margin: 8px 0 10px; }
-    .filter-preset-row { display: flex; gap: 8px; }
-    .filter-preset { flex: 1 1 0; border: 1px solid rgba(148,163,184,0.24); background: rgba(255,255,255,0.74); color: #334155; border-radius: 12px; padding: 8px 10px; font-size: 11px; font-weight: 800; cursor: pointer; transition: .15s ease; }
+    .filter-preset-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .filter-preset { width: 100%; border: 1px solid rgba(148,163,184,0.24); background: rgba(255,255,255,0.74); color: #334155; border-radius: 12px; padding: 8px 10px; font-size: 11px; font-weight: 800; cursor: pointer; transition: .15s ease; }
     .filter-preset:hover { background: #fff; border-color: rgba(0,121,193,0.34); color: var(--primary); transform: translateY(-1px); }
     .filter-preset.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 10px 18px rgba(0,121,193,0.18); }
-    .type-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-    .type-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #334155; background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.22); border-radius: 999px; padding: 7px 10px; cursor: pointer; user-select: none; transition: .15s ease; }
-    .type-chip input { margin: 0; }
-    .type-chip:hover { background: rgba(255,255,255,0.92); border-color: rgba(0,121,193,0.24); color: var(--primary); }
-    .type-chip.active { background: rgba(0,121,193,0.10); border-color: rgba(0,121,193,0.30); color: var(--primary); }
-    .type-chip .chip-ico { font-size: 12px; }
+    .type-chip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .type-chip { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; font-size: 11px; font-weight: 800; color: var(--chip-color, #334155); background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.22); border-radius: 12px; padding: 9px 10px; cursor: pointer; user-select: none; transition: .15s ease; box-sizing: border-box; }
+    .type-chip input { margin: 0; flex: 0 0 auto; }
+    .type-chip:hover { background: rgba(255,255,255,0.92); border-color: rgba(0,121,193,0.24); }
+    .type-chip.active { background: rgba(0,121,193,0.10); border-color: rgba(0,121,193,0.30); }
+    .type-chip .chip-ico { width: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; flex: 0 0 auto; color: var(--chip-color, currentColor); }
     .tree-item.filtered-out { display: none !important; }
 
     .tree-edit { width: 22px; height: 22px; border: none; border-radius: 8px; background: rgba(124,58,237,0.12); color: #6d28d9; cursor: pointer; font-weight: 800; line-height: 1; }
     .tree-edit:hover { background: rgba(124,58,237,0.2); }
 
-        /* Floating geometry editor: appears only during vertex editing and should remain visually distinct from the other panels. */
     .geometry-editor {
       position: absolute;
       left: 20px;
@@ -319,17 +364,13 @@
   <div class="status" id="status">Initializing 3D World...</div>
   <div id="hoverTip" style="position:absolute;display:none;z-index:1100;pointer-events:none;background:rgba(17,24,39,0.92);color:#fff;padding:6px 8px;border-radius:8px;font-size:12px;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.25);"></div>
 
-  <!--
-    Geometry editor: only appears when a user selects a path or polygon for reshaping.
-    Keep its instructions, save/cancel behavior, and vertex-edit helpers in sync with the geometry-edit functions in the script.
-  -->
   <div id="geometryEditPanel" class="geometry-editor hidden">
     <div class="geometry-editor-header">
       <div>
         <div id="geometryEditTitle">Edit Geometry</div>
         <small id="geometryEditSubtitle">Drag vertices, click ghost points to add nodes, press Delete/Backspace to remove selected vertices.</small>
       </div>
-      <button type="button" id="geometryEditClose" class="geometry-editor-close" title="Close editor">✕</button>
+      <button type="button" id="geometryEditClose" class="geometry-editor-close" title="Close editor"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="geometry-editor-body">
       <div class="geometry-editor-tip" id="geometryEditTip">
@@ -344,25 +385,21 @@
   </div>
 
 
-  <!--
-    Places / imports sidebar: holds user-created items, imported KML/KMZ content, and the import tree.
-    This panel is intentionally separate from Earth Controls because it manages content visibility, editing, and file import state.
-  -->
   <div class="imports-sidebar" id="importsSidebar">
     <div class="imports-sidebar-header" id="importsSidebarHeader">
       <h3>Places</h3>
-      <span class="toggle-icon">▼</span>
-      <div class="menu-icon">📌</div>
+      <span class="toggle-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      <div class="menu-icon"><i class="fa-solid fa-map-location-dot"></i></div>
     </div>
     <div class="imports-sidebar-content" id="importsSidebarContent">
       <div class="places-tabs">
-        <button type="button" class="places-tab active" id="placesTabCreate" data-places-tab="create">Create</button>
-        <button type="button" class="places-tab" id="placesTabImports" data-places-tab="imports">Imports</button>
+        <button type="button" class="places-tab active" id="placesTabCreate" data-places-tab="create"><i class="fa-solid fa-plus"></i><span>Create</span></button>
+        <button type="button" class="places-tab" id="placesTabImports" data-places-tab="imports"><i class="fa-solid fa-file-import"></i><span>Imports</span></button>
       </div>
 
       <div class="places-pane" id="placesCreatePane">
         <div class="section-group" data-tab-group="imports">
-          <div class="section-title" style="margin-top:0">Create<span class="section-chevron">▾</span></div>
+          <div class="section-title" style="margin-top:0">Create<span class="section-chevron"><i class="fa-solid fa-chevron-down"></i></span></div>
           <div class="section-body">
             <div class="import-box">
               <div class="setting-label" style="margin-bottom:8px;">
@@ -374,12 +411,12 @@
                 <button class="action-btn tool-btn" id="btnCreatePath" style="margin-top:0;">Add Path</button>
                 <button class="action-btn tool-btn" id="btnCreatePolygon" style="margin-top:0;">Add Polygon</button>
                 <button class="action-btn tool-btn" id="btnCreateFinalize" style="margin-top:0;">Finalize</button>
-                <button class="tree-toggle" id="btnCreateCancel" title="Cancel create mode">✕</button>
+                <button class="tree-toggle" id="btnCreateCancel" title="Cancel create mode"><i class="fa-solid fa-xmark"></i></button>
               </div>
               <div id="createHelp" class="coord-output" style="margin-top:10px;">Choose a create tool, then click the map to place points. Use Finalize or double-click to finish paths and polygons.</div>
             </div>
             <div class="import-box" style="margin-top:10px;">
-              <div class="section-title" style="margin-top:0">My Places<span class="section-chevron">▾</span></div>
+              <div class="section-title" style="margin-top:0">My Places<span class="section-chevron"><i class="fa-solid fa-chevron-down"></i></span></div>
               <div id="userCreatedTree" class="tree-panel"></div>
             </div>
           </div>
@@ -390,22 +427,18 @@
     </div>
   </div>
 
-  <!--
-    Earth Controls panel: the main settings area for map type, tools, measurements, and export-related toggles.
-    When adding a new control, decide first whether it belongs here or in the Places sidebar.
-  -->
   <div class="panel" id="controlPanel">
     <div class="panel-header" id="panelHeader">
       <h3>Earth Controls</h3>
-      <span class="toggle-icon">▼</span>
-      <div class="menu-icon">⚙️</div>
+      <span class="toggle-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      <div class="menu-icon"><i class="fa-solid fa-gears"></i></div>
     </div>
 
     <div class="panel-content">
       <div class="panel-tabs" id="panelTabs">
-        <button class="panel-tab active" type="button" data-tab="map">Map</button>
-        <button class="panel-tab" type="button" data-tab="tools">Tools</button>
-                <button class="panel-tab" type="button" data-tab="settings">Settings</button>
+        <button class="panel-tab active" type="button" data-tab="map"><i class="fa-solid fa-map"></i><span>Map</span></button>
+        <button class="panel-tab" type="button" data-tab="tools"><i class="fa-solid fa-wrench"></i><span>Tools</span></button>
+                <button class="panel-tab" type="button" data-tab="settings"><i class="fa-solid fa-sliders"></i><span>Settings</span></button>
       </div>
       <div class="compact-row" id="compactModeRow">
         <div class="compact-label">
@@ -464,6 +497,11 @@
         <span class="setting-title">View Angle</span>
         <input type="range" id="tiltSlider" min="0" max="90" value="75">
       </div>
+      <div class="setting-label">
+        <span class="setting-title">Zoom Sensitivity</span>
+        <span class="setting-desc" id="zoomSensitivityLabel">1.00x mouse-wheel zoom</span>
+        <input type="range" id="zoomSensitivitySlider" min="0.25" max="3" step="0.05" value="1">
+      </div>
 
       <span class="section-title">GPS Marker Tool</span>
       <div style="background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
@@ -478,7 +516,7 @@
           <button class="action-btn tool-btn" id="btnPickLocation" style="margin-top:0;">Pick Coordinates</button>
           <button class="action-btn tool-btn" id="btnMeasureDistance" style="margin-top:0;">Measure Distance</button>
           <button class="action-btn tool-btn" id="btnMeasureArea" style="margin-top:0;">Measure Area</button>
-          <button class="tree-toggle" id="btnClearMeasure" title="Clear picked points and measurements">✕</button>
+          <button class="tree-toggle" id="btnClearMeasure" title="Clear picked points and measurements"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div id="coordOutput" class="coord-output">Click a tool, then choose a point on the map.</div>
         <div class="coord-actions">
@@ -515,7 +553,7 @@
         <input type="file" id="kmlFileInput" accept=".kml,.kmz,.xml" />
         <div class="import-row">
           <button class="action-btn" id="btnImportKml" style="margin-top:0;">Import Selected File</button>
-          <button class="tree-toggle" id="btnClearImports" title="Remove all imported items">✕</button>
+          <button class="tree-toggle" id="btnClearImports" title="Remove all imported items"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="import-row">
           <button class="action-btn tool-btn" id="btnExportKml" style="margin-top:0; flex:1;">Export KML</button>
@@ -528,17 +566,17 @@
       <span class="section-title">Map Type</span>
       <div class="setting-label">
         <span class="setting-title">Map Type</span>
-        <span class="setting-desc">Switch between Topographic, Satellite, and the Nova Scotia LiDAR hillshade tile layer.</span>
+        <span class="setting-desc">Switch between Topographic, Satellite, and the Nova Scotia LiDAR overlay.</span>
         <select id="mapTypeSelect">
           <option value="topographic">Topographic</option>
           <option value="satellite">Satellite</option>
-          <option value="hillshade">Nova Scotia Hillshade (LiDAR, 2D only)</option>
+          <option value="hillshade">Nova Scotia Hillshade (LiDAR overlay)</option>
         </select>
       </div>
       <span class="section-title">Shortcuts</span>
-      <button class="location-btn" data-loc="halifax">⚓ Halifax Citadel</button>
-      <button class="location-btn" data-loc="nyc">🏙️ New York</button>
-      <button class="location-btn" data-loc="everest">🏔️ Everest</button>
+      <button class="location-btn" data-loc="halifax"><i class="fa-solid fa-anchor"></i><span>Halifax Citadel</span></button>
+      <button class="location-btn" data-loc="nyc"><i class="fa-solid fa-city"></i><span>New York</span></button>
+      <button class="location-btn" data-loc="everest"><i class="fa-solid fa-mountain"></i><span>Everest</span></button>
 
       <div class="stats" id="camStats">
         <div>ALT: --</div>
@@ -550,9 +588,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://js.arcgis.com/4.29/"></script>
   <script>
-    // ArcGIS bootstrapping note:
-    // The script is organized so the top-level objects define the scene first, then the shared app state,
-    // then feature-specific systems (creation, import, editing, measurement, persistence, and export).
     require([
       "esri/Map",
       "esri/Basemap",
@@ -561,7 +596,7 @@
       "esri/layers/ElevationLayer",
       "esri/layers/GraphicsLayer",
       "esri/layers/FeatureLayer",
-      "esri/layers/TileLayer",
+      "esri/layers/MapImageLayer",
       "esri/widgets/Sketch/SketchViewModel",
       "esri/Graphic",
       "esri/geometry/Point",
@@ -582,11 +617,8 @@
       "esri/symbols/PictureFillSymbol",
       "esri/geometry/Extent"
     ], function(
-      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, TileLayer, SketchViewModel, Graphic, Point, Polyline, Polygon, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
+      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, MapImageLayer, SketchViewModel, Graphic, Point, Polyline, Polygon, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
     ) {
-      // Base scene note:
-      // The map starts in topo-vector mode with a global 3D elevation surface.
-      // Hillshade is available in the UI, but the code intentionally falls back to Topographic in 3D when the projection/layer setup is not suitable.
       const map = new Map({
         basemap: "topo-vector",
         ground: {
@@ -594,46 +626,66 @@
         }
       });
 
-      const hillshadeLayer = new TileLayer({
+      // Use the Nova Scotia hillshade as a draped overlay in SceneView.
+      const hillshadeLayer = new MapImageLayer({
         url: "https://nsgiwa.novascotia.ca/arcgis/rest/services/ELEV/ELEV_LIDAR_Projects_Hillshade_UT83/MapServer",
         title: "Nova Scotia LiDAR Hillshade",
         opacity: 0.9,
-        visible: true
+        visible: false,
+        listMode: "show"
+      });
+      map.add(hillshadeLayer);
+      hillshadeLayer.when(() => {
+        try {
+          hillshadeLayer.minScale = 0;
+          hillshadeLayer.maxScale = 0;
+          const clearScale = (sublayer) => {
+            if (!sublayer) return;
+            sublayer.minScale = 0;
+            sublayer.maxScale = 0;
+            if (sublayer.allSublayers && typeof sublayer.allSublayers.forEach === 'function') {
+              sublayer.allSublayers.forEach(clearScale);
+            } else if (sublayer.sublayers && typeof sublayer.sublayers.forEach === 'function') {
+              sublayer.sublayers.forEach(clearScale);
+            }
+          };
+          if (hillshadeLayer.allSublayers && typeof hillshadeLayer.allSublayers.forEach === 'function') {
+            hillshadeLayer.allSublayers.forEach(clearScale);
+          }
+        } catch (err) {
+          console.warn('Unable to force hillshade scales to 0:', err);
+        }
       });
 
       const hillshadeBasemap = new Basemap({
-        baseLayers: [hillshadeLayer],
+        baseLayers: [],
         title: "Nova Scotia LiDAR Hillshade"
       });
 
-      // Map type note:
-      // Centralizes basemap switching so the menu, local preferences, and 3D compatibility rules all stay in one place.
       function applyMapType(type, persist = true) {
         const normalized = (type === "satellite" || type === "hillshade") ? type : "topographic";
         const select = document.getElementById("mapTypeSelect");
 
         if (normalized === "hillshade") {
-          // The official Nova Scotia hillshade service is a tiled layer published in WKID 2038,
-          // which is not a reliable fit for this globe-based 3D scene.
-          setStatus("Nova Scotia Hillshade is available in the menu, but this 3D scene uses Topographic instead.");
           map.basemap = "topo-vector";
-          if (select && select.value !== "topographic") select.value = "topographic";
-        } else if (normalized === "satellite") {
-          map.basemap = "satellite";
-          if (select && select.value !== normalized) select.value = normalized;
+          setStatus("Loading Nova Scotia LiDAR hillshade... This might take a while to load.");
+          if (hillshadeLayer) {
+            hillshadeLayer.visible = true;
+            hillshadeLayer.opacity = 0.9;
+          }
+          setStatus("Nova Scotia LiDAR hillshade enabled as a 3D overlay.");
         } else {
-          map.basemap = "topo-vector";
-          if (select && select.value !== normalized) select.value = normalized;
+          if (hillshadeLayer) hillshadeLayer.visible = false;
+          map.basemap = normalized === "satellite" ? "satellite" : "topo-vector";
         }
 
+        if (select && select.value !== normalized) select.value = normalized;
         if (persist) {
           uiPrefs.mapType = normalized;
           saveUiPrefs();
         }
       }
 
-      // SceneView note:
-      // This camera is the default “working view” for the app: a low-altitude perspective over Nova Scotia with lighting and navigation controls enabled.
       const view = new SceneView({
         container: "map",
         map,
@@ -651,10 +703,12 @@
         ui: { components: ["zoom", "navigation-toggle", "compass"] }
       });
 
+      if (view.navigation && view.navigation.actionMap) {
+        view.navigation.actionMap.mouseWheel = 'zoom';
+      }
+
       view.ui.move(["zoom", "navigation-toggle", "compass"], "bottom-right");
 
-      // Layer stack note:
-      // Marker, user-created, and import layers are kept separate so each system can be cleared, hidden, exported, or edited without affecting the others.
       const markerLayer = new GraphicsLayer();
       const measurementLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       const editLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
@@ -668,16 +722,10 @@
 
       const userCreatedRoot = { id: 'user-root', title: 'My Places', type: 'root', expanded: true, children: [], parent: null };
       const userCreatedNodes = Object.create(null);
-      // User-created content note:
-      // These graphics are authored inside the app (pins, paths, polygons).
-      // The draft layer is used while drawing so the user can cancel safely without committing geometry yet.
       const userCreatedLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       const userCreatedDraftLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       map.addMany([userCreatedLayer, userCreatedDraftLayer]);
 
-      // Shared UI / interaction state note:
-      // Keep transient drag, hover, create-mode, and edit-mode data here instead of scattering it across DOM handlers.
-      // This makes undo/cancel behavior predictable and helps prevent stale selections from surviving mode changes.
       let importCounter = 0;
       const hoverTip = document.getElementById('hoverTip');
       const toolState = {
@@ -704,15 +752,25 @@
       const geometryEditTip = document.getElementById('geometryEditTip');
       const geometryEditContainer = document.getElementById('geometryEditContainer');
       const IMPORT_TYPE_ORDER = [
-        { kind: 'pin', label: 'Pins', icon: '📍' },
-        { kind: 'path', label: 'Paths', icon: '🛣' },
-        { kind: 'polygon', label: 'Polygons', icon: '⬟' },
-        { kind: 'overlay', label: 'Overlays', icon: '🖼' },
-        { kind: 'folder', label: 'Folders', icon: '📁' },
-        { kind: 'document', label: 'Documents', icon: '🗂' },
-        { kind: 'dataset', label: 'Datasets', icon: '⛏' },
-        { kind: 'unknown', label: 'Other', icon: '•' }
+        { kind: 'pin', label: 'Pins', icon: 'fa-solid fa-map-pin' },
+        { kind: 'path', label: 'Paths', icon: 'fa-solid fa-route' },
+        { kind: 'polygon', label: 'Polygons', icon: 'fa-solid fa-draw-polygon' },
+        { kind: 'overlay', label: 'Overlays', icon: 'fa-solid fa-image' },
+        { kind: 'folder', label: 'Folders', icon: 'fa-solid fa-folder' },
+        { kind: 'document', label: 'Documents', icon: 'fa-solid fa-file-lines' },
+        { kind: 'dataset', label: 'Datasets', icon: 'fa-solid fa-database' },
+        { kind: 'unknown', label: 'Other', icon: 'fa-solid fa-circle-question' }
       ];
+      const KIND_COLORS = {
+        pin: '#dc2626',
+        path: '#b45309',
+        polygon: '#047857',
+        overlay: '#0ea5e9',
+        folder: '#0f172a',
+        document: '#7c3aed',
+        dataset: '#0f766e',
+        unknown: '#334155'
+      };
       let importTypeFilters = new Set(IMPORT_TYPE_ORDER.map(v => v.kind));
 
       const AMO_LAYER_URL = 'https://dawson.novascotia.ca/arcgis/rest/services/Hosted/Abandoned_Mine_Openings_Degree_of_Hazard_d010ns_ut83/FeatureServer/4';
@@ -1247,8 +1305,6 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         }
       }
 
-      // User content tree note:
-      // This renderer mirrors the in-memory hierarchy so the sidebar always matches what is currently visible on the map.
       function renderUserCreatedTree() {
         const host = document.getElementById('userCreatedTree');
         if (!host) return;
@@ -1272,8 +1328,8 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
 
         const icon = document.createElement('span');
         icon.className = `tree-kind ${getNodeKind(node)}`;
-        icon.textContent = getNodeIcon(node);
         icon.title = getNodeTypeLabel(node);
+        icon.innerHTML = `<i class="${getNodeIcon(node)}"></i>`;
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -1296,19 +1352,22 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         const edit = document.createElement('button');
         edit.className = 'tree-edit';
         edit.type = 'button';
-        edit.textContent = '✎';
+        edit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
         edit.addEventListener('click', () => openCreatedEditor(node));
 
         const remove = document.createElement('button');
         remove.className = 'tree-remove';
         remove.type = 'button';
-        remove.textContent = '×';
+        remove.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
         remove.addEventListener('click', () => {
           removeUserCreatedNode(node);
           renderUserCreatedTree();
         });
 
-        row.append(icon, checkbox, label, meta, edit, remove);
+        const actions = document.createElement('div');
+        actions.className = 'tree-actions';
+        actions.append(edit, remove);
+        row.append(icon, checkbox, label, meta, actions);
         li.appendChild(row);
         return li;
       }
@@ -1495,8 +1554,6 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         };
       }
 
-      // Geometry editing note:
-      // This editor is only for user-authored items. Imported KML/KMZ content uses a different editor path so parsing/export logic stays separate.
       function openCreatedEditor(node) {
         if (!node) return;
         const root = document.createElement('div');
@@ -1627,14 +1684,14 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
 
       function getNodeIcon(node) {
         const kind = getNodeKind(node);
-        if (kind === 'folder') return '📁';
-        if (kind === 'dataset') return '⛏';
-        if (kind === 'document') return '🗂';
-        if (kind === 'overlay') return '🖼';
-        if (kind === 'pin') return '📍';
-        if (kind === 'path') return '🛣';
-        if (kind === 'polygon') return '⬟';
-        return '•';
+        if (kind === 'folder') return 'fa-solid fa-folder';
+        if (kind === 'dataset') return 'fa-solid fa-database';
+        if (kind === 'document') return 'fa-solid fa-file-lines';
+        if (kind === 'overlay') return 'fa-solid fa-image';
+        if (kind === 'pin') return 'fa-solid fa-map-pin';
+        if (kind === 'path') return 'fa-solid fa-route';
+        if (kind === 'polygon') return 'fa-solid fa-draw-polygon';
+        return 'fa-solid fa-circle-question';
       }
 
       function setImportTypeFilterState(nextKinds) {
@@ -1657,7 +1714,8 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
           <div class="type-chip-grid">
             ${IMPORT_TYPE_ORDER.map(item => {
               const checked = importTypeFilters.has(item.kind) ? 'checked' : '';
-              return `<label class="type-chip ${checked ? 'active' : ''}" title="Show or hide ${escapeHtml(item.label)}"><input type="checkbox" data-import-type="${item.kind}" ${checked}><span class="chip-ico">${item.icon}</span><span>${escapeHtml(item.label)}</span></label>`;
+              const chipColor = KIND_COLORS[item.kind] || '#334155';
+              return `<label class="type-chip ${checked ? 'active' : ''}" style="--chip-color:${chipColor};" title="Show or hide ${escapeHtml(item.label)}"><input type="checkbox" data-import-type="${item.kind}" ${checked}><i class="${item.icon} chip-ico" aria-hidden="true"></i><span>${escapeHtml(item.label)}</span></label>`;
             }).join('')}
           </div>
         `;
@@ -1909,8 +1967,6 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         return Array.isArray(rgba) ? rgba : fallback;
       }
 
-      // KML parser note:
-      // KML and KMZ data are parsed into normal GeoJSON-like coordinate arrays first, then converted into ArcGIS graphics and layers later.
       function parseKmlCoordinates(text) {
         return String(text || '')
           .trim()
@@ -2414,7 +2470,7 @@ function openImportedEditor(node) {
         const closeBtn = document.createElement('button');
         closeBtn.className = 'tree-toggle';
         closeBtn.type = 'button';
-        closeBtn.textContent = '✕';
+        closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         closeBtn.title = 'Close';
         closeBtn.addEventListener('click', () => view.popup.close());
 
@@ -3125,7 +3181,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         li.dataset.kind = getNodeKind(node);
 
         if (node.type === 'root') {
-          li.innerHTML = `<div class="tree-node"><span class="tree-label">${node.title}</span><span class="tree-meta">${node.children.length} items</span></div>`;
+          li.innerHTML = `<div class="tree-node tree-node-root"><span class="tree-kind folder"><i class="fa-solid fa-folder"></i></span><span class="tree-label">${node.title}</span><span class="tree-meta">${node.children.length} items</span></div>`;
           const children = document.createElement('ul');
           children.className = 'tree-root';
           node.children.forEach(child => { const rendered = renderTreeNode(child); if (rendered) children.appendChild(rendered); });
@@ -3138,13 +3194,15 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
 
         const icon = document.createElement('span');
         icon.className = `tree-kind ${getNodeKind(node)}`;
-        icon.textContent = getNodeIcon(node);
         icon.title = getNodeTypeLabel(node);
+        icon.innerHTML = `<i class="${getNodeIcon(node)}"></i>`;
 
         const toggle = document.createElement('button');
         toggle.className = 'tree-toggle';
         toggle.type = 'button';
-        toggle.textContent = hasChildren ? (node.expanded ? '▾' : '▸') : '•';
+        toggle.innerHTML = hasChildren
+          ? `<i class="fa-solid ${node.expanded ? 'fa-chevron-down' : 'fa-chevron-right'}"></i>`
+          : '<i class="fa-solid fa-circle"></i>';
         toggle.title = hasChildren ? 'Expand/collapse' : 'Feature';
         toggle.disabled = !hasChildren;
         toggle.addEventListener('click', () => {
@@ -3173,7 +3231,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         const go = document.createElement('button');
         go.className = 'tree-go';
         go.type = 'button';
-        go.textContent = '↗';
+        go.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i>';
         go.title = 'Teleport to item';
         go.addEventListener('click', async () => {
           try {
@@ -3187,7 +3245,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         const edit = document.createElement('button');
         edit.className = 'tree-edit';
         edit.type = 'button';
-        edit.textContent = '✎';
+        edit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
         edit.title = 'Edit geometry';
         edit.style.display = canEditGeometryNode(node) ? '' : 'none';
         edit.addEventListener('click', (event) => {
@@ -3198,7 +3256,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         const info = document.createElement('button');
         info.className = 'tree-info';
         info.type = 'button';
-        info.textContent = 'i';
+        info.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
         info.title = 'More info';
         info.addEventListener('click', () => {
           if (getNodeKind(node) === 'overlay') {
@@ -3212,14 +3270,17 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         const remove = document.createElement('button');
         remove.className = 'tree-remove';
         remove.type = 'button';
-        remove.textContent = '×';
+        remove.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
         remove.title = 'Remove';
         remove.addEventListener('click', () => {
           removeNode(node);
           renderImportTree();
         });
 
-        row.append(icon, toggle, checkbox, label, meta, go, edit, info, remove);
+        const actions = document.createElement('div');
+        actions.className = 'tree-actions';
+        actions.append(go, edit, info, remove);
+        row.append(icon, toggle, checkbox, label, meta, actions);
 
         row.addEventListener('mouseenter', (event) => setActiveImportedNode(node, event));
         row.addEventListener('mousemove', (event) => setActiveImportedNode(node, event));
@@ -3241,8 +3302,6 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         return li;
       }
 
-      // Imported tree note:
-      // This view is the sidebar mirror of the parsed import hierarchy; it should stay in sync with node visibility and selection state.
       function renderImportTree() {
         const host = document.getElementById('importTree');
         if (!host) return;
@@ -3262,8 +3321,6 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         host.appendChild(list);
       }
 
-      // KML/KMZ loader note:
-      // KMZ files are unpacked to text first, while plain KML is read directly; both then enter the same parser pipeline.
       async function loadKmlFromFile(file) {
         const lower = file.name.toLowerCase();
         if (lower.endsWith('.kmz')) {
@@ -3273,8 +3330,6 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         return await file.text();
       }
 
-      // Import entry point note:
-      // All KML/KMZ file selection flows through this function so validation, parsing, and tree refresh happen in one predictable place.
       async function importKmlOrKmz() {
         const input = document.getElementById('kmlFileInput');
         const file = input && input.files && input.files[0];
@@ -3329,8 +3384,6 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         return `${displayHours}:${String(minutes).padStart(2, "0")} ${ampm}`;
       }
 
-      // Lighting note:
-      // Sun/time-of-day controls are kept separate from map type because lighting should change the scene mood without altering basemap state.
       function updateLighting() {
         const totalMinutes = Number(timeSlider.value);
         timeLabel.textContent = formatTime(totalMinutes);
@@ -3679,13 +3732,10 @@ ${txt}`;
         'Shortcuts': 'settings'
       };
 
-      // Preference note:
-      // LocalStorage only stores UI preferences here, not map data.
-      // That keeps the app lightweight while still restoring the last tab, panel state, compact mode, and basemap choice.
       function loadUiPrefs() {
         try {
           const raw = localStorage.getItem(UI_PREFS_KEY);
-          if (!raw) return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic' };
+          if (!raw) return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1 };
           const parsed = JSON.parse(raw);
           return {
             activeTab: ['map', 'tools', 'settings'].includes(parsed.activeTab) ? parsed.activeTab : 'map',
@@ -3694,19 +3744,105 @@ ${txt}`;
             panelCollapsed: !!parsed.panelCollapsed,
             importsSidebarCollapsed: !!parsed.importsSidebarCollapsed,
             mapType: ['topographic', 'satellite', 'hillshade'].includes(parsed.mapType) ? parsed.mapType : 'topographic',
-            
+            zoomSensitivity: Number.isFinite(Number(parsed.zoomSensitivity)) && Number(parsed.zoomSensitivity) > 0 ? Math.min(3, Math.max(0.25, Number(parsed.zoomSensitivity))) : 1,
           };
         } catch (_) {
-          return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic' };
+          return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1 };
         }
       }
 
       const uiPrefs = loadUiPrefs();
 
-      // Persistence note:
-      // Saving is intentionally small and targeted: only UI state and display preferences are written here, while imported content is handled by the import/export layer.
       function saveUiPrefs() {
         try { localStorage.setItem(UI_PREFS_KEY, JSON.stringify(uiPrefs)); } catch (_) {}
+      }
+
+      let zoomSensitivity = Number(uiPrefs.zoomSensitivity);
+      if (!Number.isFinite(zoomSensitivity) || zoomSensitivity <= 0) zoomSensitivity = 1;
+      let zoomWheelHandler = null;
+
+      function syncZoomSensitivityUi(value) {
+        const slider = document.getElementById('zoomSensitivitySlider');
+        const label = document.getElementById('zoomSensitivityLabel');
+        const numeric = Number(value);
+        const normalized = Number.isFinite(numeric) && numeric > 0 ? numeric : 1;
+        if (slider && Number(slider.value) !== normalized) slider.value = String(normalized);
+        if (label) label.textContent = `${normalized.toFixed(2)}x mouse-wheel zoom`;
+      }
+
+      function setZoomSensitivity(value, persist = true) {
+        const numeric = Number(value);
+        const normalized = Math.min(3, Math.max(0.25, Number.isFinite(numeric) ? numeric : 1));
+        zoomSensitivity = normalized;
+        syncZoomSensitivityUi(normalized);
+        if (persist) {
+          uiPrefs.zoomSensitivity = normalized;
+          saveUiPrefs();
+        }
+      }
+
+      async function zoomTowardPointer(event) {
+        if (!view || !view.camera || !view.container) return;
+        const delta = Number(event.deltaY);
+        if (!Number.isFinite(delta) || delta === 0) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+
+        const rect = view.container.getBoundingClientRect();
+        const screenPoint = {
+          x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+          y: Math.max(0, Math.min(rect.height, event.clientY - rect.top))
+        };
+
+        let focusPoint = null;
+        try {
+          const hit = await view.hitTest(screenPoint);
+          focusPoint = hit?.results?.[0]?.mapPoint || null;
+        } catch (_) {}
+
+        if (!focusPoint && typeof view.toMap === 'function') {
+          try { focusPoint = view.toMap(screenPoint); } catch (_) {}
+        }
+        if (!focusPoint) focusPoint = view.center || null;
+        if (!focusPoint) return;
+
+        const camera = view.camera.clone();
+        const factorBase = delta > 0 ? 1.18 : 1 / 1.18;
+        const factor = Math.pow(factorBase, Math.max(0.25, Math.min(3, zoomSensitivity)));
+
+        const camPos = camera.position;
+        const fx = focusPoint.x;
+        const fy = focusPoint.y;
+        const fz = Number.isFinite(focusPoint.z) ? focusPoint.z : 0;
+
+        const nx = fx + (camPos.x - fx) * factor;
+        const ny = fy + (camPos.y - fy) * factor;
+        const nz = Math.max(1, fz + (camPos.z - fz) * factor);
+
+        camera.position = {
+          x: nx,
+          y: ny,
+          z: nz,
+          spatialReference: camPos.spatialReference || focusPoint.spatialReference || view.spatialReference
+        };
+
+        try {
+          await view.goTo(camera, { animate: false });
+        } catch (_) {}
+      }
+
+      function installZoomSensitivity() {
+        if (!view || !view.container) return;
+        if (zoomWheelHandler) {
+          view.container.removeEventListener('wheel', zoomWheelHandler, true);
+        }
+        zoomWheelHandler = (event) => {
+          if (!event.isTrusted) return;
+          zoomTowardPointer(event);
+        };
+        view.container.addEventListener('wheel', zoomWheelHandler, { passive: false, capture: true });
       }
 
       function setPanelCollapsed(collapsed) {
@@ -3765,7 +3901,7 @@ ${txt}`;
             group.appendChild(node);
             const chevron = document.createElement('span');
             chevron.className = 'section-chevron';
-            chevron.textContent = '▾';
+            chevron.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
             node.appendChild(chevron);
 
             const body = document.createElement('div');
@@ -3805,8 +3941,6 @@ ${txt}`;
         if (title) title.style.marginTop = '0';
       }
 
-      // Initialization note:
-      // The final section wires DOM events after the scene and all layers exist, which avoids null references and keeps startup order explicit.
       function initPanelTabs() {
         document.querySelectorAll('.panel-tab').forEach(btn => {
           btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
@@ -3904,6 +4038,11 @@ ${txt}`;
       document.getElementById("toggleBuildings").addEventListener("change", e => buildingsLayer.visible = e.target.checked);
       document.getElementById("toggleTerrain").addEventListener("change", e => map.ground.visible = e.target.checked);
       document.getElementById("tiltSlider").addEventListener("input", e => view.goTo({ tilt: Number(e.target.value) }, { animate: false }));
+      const zoomSensitivitySlider = document.getElementById('zoomSensitivitySlider');
+      if (zoomSensitivitySlider) {
+        zoomSensitivitySlider.addEventListener('input', e => setZoomSensitivity(e.target.value));
+      }
+      setZoomSensitivity(uiPrefs.zoomSensitivity || 1, false);
 
       const locations = {
         halifax: { position: { longitude: -63.586949480877735, latitude: 44.65286231272531, z: 350 }, tilt: 65, heading: 140 },
@@ -4031,6 +4170,7 @@ ${txt}`;
 
       view.when(() => {
         const statusEl = document.getElementById('status'); if (statusEl) statusEl.style.opacity = '0';
+        installZoomSensitivity();
         updateLighting();
         renderImportTree();
         renderUserCreatedTree();
