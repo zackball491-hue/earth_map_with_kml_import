@@ -145,34 +145,67 @@
       .panel-tabs, .places-tabs { gap: 8px; }
       .panel-tab, .places-tab { padding: 10px 10px; font-size: 11px; }
     }
-    @media (max-width: 760px) {
-      .panel, .imports-sidebar { left: 10px; right: 10px; width: auto; max-width: none; }
-      .panel { top: 10px; }
-      .imports-sidebar { top: 10px; bottom: auto; max-height: 48vh; }
-      .panel-content, .imports-sidebar-content { padding: 12px; }
-      .panel-tab, .places-tab { border-radius: 14px; }
-      .type-chip-grid, .filter-preset-row { grid-template-columns: 1fr; }
-      .type-chip { padding: 8px 9px; }
+    @media (max-width: 900px) {
+      .panel {
+        width: min(316px, calc(50vw - 14px));
+      }
+      .imports-sidebar {
+        width: min(316px, calc(50vw - 14px));
+        max-width: calc(50vw - 14px);
+      }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 760px) {
+      .panel {
+        left: auto;
+        right: 8px;
+        top: 8px;
+        bottom: 8px;
+        width: calc(50vw - 12px);
+        max-width: calc(50vw - 12px);
+      }
       .imports-sidebar {
-        left: 12px;
-        top: 12px;
-        bottom: auto;
-        width: min(320px, calc(100vw - 24px));
-        max-width: calc(100vw - 24px);
-        max-height: calc(100vh - 24px);
+        left: 8px;
+        right: auto;
+        top: 8px;
+        bottom: 8px;
+        width: calc(50vw - 12px);
+        max-width: calc(50vw - 12px);
+        max-height: none;
       }
-      .imports-sidebar.collapsed {
-        width: 48px;
-        height: 48px;
-        max-width: 48px;
-        top: 12px;
-        bottom: auto;
+      .panel-content, .imports-sidebar-content {
+        padding: 10px;
       }
-      .imports-sidebar-content {
-        max-height: calc(100vh - 72px);
+      .panel-tab, .places-tab {
+        border-radius: 14px;
+        padding: 9px 8px;
+        font-size: 10px;
+      }
+      .type-chip-grid, .filter-preset-row {
+        grid-template-columns: 1fr;
+      }
+      .type-chip {
+        padding: 8px 9px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .panel, .imports-sidebar {
+        width: calc(50vw - 10px);
+        max-width: calc(50vw - 10px);
+      }
+      .panel-header, .imports-sidebar-header {
+        padding: 12px 10px;
+      }
+      .panel-content, .imports-sidebar-content {
+        padding: 8px;
+      }
+      .panel-tabs, .places-tabs {
+        gap: 6px;
+      }
+      .panel-tab, .places-tab {
+        font-size: 9px;
+        padding: 8px 6px;
       }
     }
 
@@ -221,6 +254,7 @@
 
     .action-btn { width: 100%; padding: 9px 12px; background: linear-gradient(135deg, var(--primary), #005a91); color: white; border: none; border-radius: 999px; font-weight: 700; font-size: 11px; cursor: pointer; margin-top: 8px; box-shadow: 0 10px 18px rgba(0,121,193,0.18); transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
     .action-btn:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 12px 24px rgba(0,121,193,0.22); }
+    .action-btn.fp-active { background: linear-gradient(135deg, #dc2626, #7f1d1d); box-shadow: 0 12px 24px rgba(220,38,38,0.22); }
 
     .tool-grid { display: flex; gap: 8px; flex-wrap: wrap; }
     .tool-btn { width: auto; flex: 1 1 104px; margin-top: 0; }
@@ -357,6 +391,65 @@
     .geometry-editor-actions .action-btn.secondary { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 10px 18px rgba(71,85,105,0.18); }
     .geometry-editor-actions .action-btn.ghost { background: linear-gradient(135deg, #7c3aed, #6d28d9); box-shadow: 0 10px 18px rgba(109,40,217,0.18); }
 
+
+    .guide-modal {
+      position: absolute;
+      inset: 0;
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.55);
+      backdrop-filter: blur(6px);
+    }
+    .guide-modal.open { display: flex; }
+    .guide-dialog {
+      width: min(920px, calc(100vw - 36px));
+      max-height: min(86vh, 920px);
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(255,255,255,0.98));
+      display: flex;
+      flex-direction: column;
+    }
+    .guide-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      color: #fff;
+      background: linear-gradient(135deg, rgba(0,121,193,0.98), rgba(2,132,199,0.78));
+    }
+    .guide-dialog-header h2 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 0.2px; }
+    .guide-dialog-header p { margin: 4px 0 0; font-size: 12px; opacity: 0.9; }
+    .guide-dialog-close {
+      width: 28px; height: 28px; border: none; border-radius: 10px; cursor: pointer;
+      background: rgba(255,255,255,0.16); color: #fff; font-size: 16px; line-height: 1; font-weight: 800;
+    }
+    .guide-dialog-body { padding: 18px; overflow: auto; color: #0f172a; background: rgba(255,255,255,0.98); }
+    .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .guide-card {
+      border: 1px solid rgba(148,163,184,0.20);
+      border-radius: 16px;
+      background: rgba(248,250,252,0.92);
+      padding: 14px;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.04);
+    }
+    .guide-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 900; color: #0f172a; }
+    .guide-card p, .guide-card li { font-size: 12px; line-height: 1.55; color: #334155; }
+    .guide-card ul { margin: 8px 0 0 18px; padding: 0; }
+    .guide-callout { margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(0,121,193,0.18); background: rgba(0,121,193,0.08); font-size: 12px; color: #0f172a; }
+    .guide-button { display: inline-flex; align-items: center; gap: 8px; width: 100%; justify-content: center; margin-top: 0; background: linear-gradient(135deg, #0ea5e9, #0079c1); }
+    .guide-button i { font-size: 12px; }
+    @media (max-width: 760px) {
+      .guide-grid { grid-template-columns: 1fr; }
+      .guide-dialog { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
+    }
+
   </style>
 </head>
 <body>
@@ -430,6 +523,9 @@
   <div class="panel" id="controlPanel">
     <div class="panel-header" id="panelHeader">
       <h3>Earth Controls</h3>
+      <button type="button" id="btnOpenHowToGuide" class="tree-toggle" title="Open detailed how-to guide" style="width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.18);">
+        <i class="fa-solid fa-circle-question"></i>
+      </button>
       <span class="toggle-icon"><i class="fa-solid fa-chevron-down"></i></span>
       <div class="menu-icon"><i class="fa-solid fa-gears"></i></div>
     </div>
@@ -502,6 +598,12 @@
         <span class="setting-desc" id="zoomSensitivityLabel">1.00x mouse-wheel zoom</span>
         <input type="range" id="zoomSensitivitySlider" min="0.25" max="3" step="0.05" value="1">
       </div>
+      <div class="setting-label">
+        <span class="setting-title">Field of View</span>
+        <span class="setting-desc" id="fovLabel">55° diagonal FOV</span>
+        <input type="range" id="fovSlider" min="35" max="100" step="1" value="55">
+      </div>
+      <button class="action-btn" id="btnFirstPerson" style="margin-top:10px;">First Person</button>
 
       <span class="section-title">GPS Marker Tool</span>
       <div style="background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
@@ -585,6 +687,33 @@
     </div>
   </div>
 
+
+  <div id="howToGuideModal" class="guide-modal" aria-hidden="true">
+    <div class="guide-dialog" role="dialog" aria-modal="true" aria-labelledby="howToGuideTitle">
+      <div class="guide-dialog-header">
+        <div>
+          <h2 id="howToGuideTitle">How to Use This 3D Earth Map</h2>
+          <p>Detailed workflow for map controls, LiDAR, imports, tools, and navigation.</p>
+        </div>
+        <button type="button" id="closeHowToGuide" class="guide-dialog-close" title="Close guide"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="guide-dialog-body">
+        <div class="guide-grid">
+          <div class="guide-card"><h3>1. Start with the map</h3><ul><li>Use the <strong>Map</strong> tab to switch between Topographic, Satellite, and the Nova Scotia LiDAR overlay.</li><li>Keep <strong>Terrain</strong> enabled for a true 3D surface.</li><li>Use <strong>Buildings</strong> to toggle scene building layers when available.</li></ul></div>
+          <div class="guide-card"><h3>2. Move around the scene</h3><ul><li>Drag to pan across the globe.</li><li>Mouse wheel zooms smoothly using the sensitivity slider in <strong>Settings → Navigation</strong>.</li><li>Use <strong>View Angle</strong> to tilt the camera and <strong>Auto-Rotate</strong> to keep the globe turning.</li></ul></div>
+          <div class="guide-card"><h3>3. Use the LiDAR overlay</h3><ul><li>Select <strong>Nova Scotia Hillshade (LiDAR overlay)</strong> from the map type menu.</li><li>A loading notice appears while the layer initializes.</li><li>If the overlay looks faint, adjust the view angle and zoom closer.</li></ul></div>
+          <div class="guide-card"><h3>4. Create your own places</h3><ul><li><strong>Add Place Mark</strong>: type a name, click <strong>Add Place Mark</strong>, then click once on the map to drop a single point. Use this for custom pins, markers, and simple saved locations.</li><li><strong>Add Path</strong>: click <strong>Add Path</strong>, then place points one by one to draw a line. Double-click or press <strong>Finalize</strong> to finish the path.</li><li><strong>Add Polygon</strong>: click <strong>Add Polygon</strong>, then place points around an area. Double-click or press <strong>Finalize</strong> to close and save the shape.</li><li>Use <strong>Cancel</strong> if you want to stop the current creation mode and clear the draft points.</li></ul></div>
+          <div class="guide-card"><h3>5. Edit imported and created items</h3><ul><li>In <strong>My Places</strong>, open an item and choose the edit option to reshape paths and polygons.</li><li>Drag the white vertices to move them, click the ghost vertices to add new points, and press <strong>Delete</strong> or <strong>Backspace</strong> to remove selected vertices.</li><li>Imported items keep their original structure unless you save the edit, so always use <strong>Save</strong> when the shape is correct.</li><li>Created paths and polygons can also be edited the same way after they are added to <strong>My Places</strong>.</li></ul></div>
+          <div class="guide-card"><h3>6. Import and export files</h3><ul><li>Go to <strong>KML / KMZ Import</strong> for supported file loading.</li><li>Use the type filters to show or hide categories after import.</li><li>Use the export buttons to save your current imported content back out as KML or KMZ.</li></ul></div>
+          <div class="guide-card"><h3>6. Measure and inspect</h3><ul><li><strong>Pick Coordinates</strong> reports the clicked point.</li><li><strong>Measure Distance</strong> and <strong>Measure Area</strong> let you build temporary measurement graphics.</li><li>Use the copy button to quickly copy the currently selected latitude and longitude.</li></ul></div>
+          <div class="guide-card"><h3>7. Keep the UI comfortable</h3><ul><li><strong>Compact mode</strong> trims the panel height when you need more map space.</li><li>Collapse the Earth Controls or Places panel from their headers when you want a cleaner view.</li><li>Settings are saved locally, so your preferred layout returns when the page reloads.</li></ul></div>
+          <div class="guide-card"><h3>8. Best-practice workflow</h3><ul><li>Pick the map style first, then turn on the LiDAR overlay if you need hillshade detail.</li><li>Adjust zoom sensitivity before fine work on dense areas.</li><li>Use the Places panel for editing, then save or export when you are done.</li></ul></div>
+        </div>
+        <div class="guide-callout">Tip: if something looks hidden or missing, check whether the relevant tab, layer toggle, or filter chip is currently turned off. Many features in this app are intentionally controlled from the panel rather than always shown on the map.</div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://js.arcgis.com/4.29/"></script>
   <script>
@@ -602,6 +731,7 @@
       "esri/geometry/Point",
       "esri/geometry/Polyline",
       "esri/geometry/Polygon",
+      "esri/Camera",
       "esri/core/reactiveUtils",
       "esri/symbols/PointSymbol3D",
       "esri/symbols/ObjectSymbol3DLayer",
@@ -617,7 +747,7 @@
       "esri/symbols/PictureFillSymbol",
       "esri/geometry/Extent"
     ], function(
-      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, MapImageLayer, SketchViewModel, Graphic, Point, Polyline, Polygon, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
+      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, MapImageLayer, SketchViewModel, Graphic, Point, Polyline, Polygon, Camera, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
     ) {
       const map = new Map({
         basemap: "topo-vector",
@@ -710,8 +840,8 @@
       view.ui.move(["zoom", "navigation-toggle", "compass"], "bottom-right");
 
       const markerLayer = new GraphicsLayer();
-      const measurementLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
-      const editLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+      let measurementLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+      let editLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       map.addMany([markerLayer, measurementLayer, editLayer]);
 
       const importedRoot = { id: 'root', title: 'Imported Items', type: 'root', expanded: true, children: [], parent: null };
@@ -722,8 +852,8 @@
 
       const userCreatedRoot = { id: 'user-root', title: 'My Places', type: 'root', expanded: true, children: [], parent: null };
       const userCreatedNodes = Object.create(null);
-      const userCreatedLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
-      const userCreatedDraftLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+      let userCreatedLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+      let userCreatedDraftLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       map.addMany([userCreatedLayer, userCreatedDraftLayer]);
 
       let importCounter = 0;
@@ -1266,7 +1396,10 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         if (!node) return;
         if (node.children) [...node.children].forEach(removeUserCreatedNode);
         if (Array.isArray(node.graphics)) {
-          node.graphics.forEach(g => { try { userCreatedLayer.remove(g); } catch (_) {} });
+          node.graphics.forEach(g => {
+            try { g.visible = false; } catch (_) {}
+            try { g.geometry = null; } catch (_) {}
+          });
         }
         delete userCreatedNodes[node.id];
         if (node.parent && node.parent.children) node.parent.children = node.parent.children.filter(ch => ch !== node);
@@ -1384,7 +1517,7 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         createState.mode = mode;
         createState.points = [];
         createState.hoverPoint = null;
-        userCreatedDraftLayer.removeAll();
+        recycleUserCreatedDraftLayer();
         const help = document.getElementById('createHelp');
         if (help) {
           help.textContent = mode === 'pin'
@@ -1400,7 +1533,7 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         createState.mode = null;
         createState.points = [];
         createState.hoverPoint = null;
-        userCreatedDraftLayer.removeAll();
+        recycleUserCreatedDraftLayer();
         const help = document.getElementById('createHelp');
         if (help) help.textContent = 'Choose a create tool, then click the map to place points. Use Finalize or double-click to finish paths and polygons.';
         setStatus('Create mode cancelled.');
@@ -1435,7 +1568,7 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
       }
 
       function updateCreateDraft() {
-        userCreatedDraftLayer.removeAll();
+        recycleUserCreatedDraftLayer();
         if (!createState.mode || createState.mode === 'pin') return;
         const draft = makeDraftGraphicFromPoints(createState.points, createState.mode);
         if (draft) userCreatedDraftLayer.add(draft);
@@ -1859,6 +1992,38 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
       function makeId(prefix = 'node') {
         importCounter += 1;
         return `${prefix}-${Date.now()}-${importCounter}`;
+      }
+
+      function addTemporaryLayer(layer) {
+        if (!layer) return;
+        map.add(layer);
+        if (typeof map.reorder === 'function') {
+          try { map.reorder(layer, map.layers.length - 1); } catch (err) {}
+        }
+      }
+
+      function recycleMeasurementLayer() {
+        if (measurementLayer) {
+          try { measurementLayer.visible = false; } catch (_) {}
+        }
+        measurementLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+        addTemporaryLayer(measurementLayer);
+      }
+
+      function recycleEditLayer() {
+        if (editLayer) {
+          try { editLayer.visible = false; } catch (_) {}
+        }
+        editLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+        addTemporaryLayer(editLayer);
+      }
+
+      function recycleUserCreatedDraftLayer() {
+        if (userCreatedDraftLayer) {
+          try { userCreatedDraftLayer.visible = false; } catch (_) {}
+        }
+        userCreatedDraftLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
+        addTemporaryLayer(userCreatedDraftLayer);
       }
 
       function setNodeVisibility(node, visible) {
@@ -2341,7 +2506,7 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
           attributes: { ...(sourceGraphic.attributes || {}), kind: sourceGraphic.attributes?.kind || getNodeKind(node), title: node.title, name: node.title }
         });
 
-        editLayer.removeAll();
+        recycleEditLayer();
         editLayer.add(editingDraftGraphic);
         showGeometryEditor(node);
 
@@ -2368,39 +2533,24 @@ function openImportedEditor(node) {
         titleInput.type = 'text';
         titleInput.value = node.title || '';
         titleInput.placeholder = 'Item name';
+        titleInput.readOnly = true;
+        titleInput.style.opacity = '0.85';
         titleLabel.appendChild(titleInput);
         root.appendChild(titleLabel);
 
         const isOverlay = getNodeKind(node) === 'overlay' || !!node.mediaLayer;
-        let opacityInput = null;
-        let rotationInput = null;
 
         if (isOverlay) {
-          const opacityLabel = document.createElement('label');
-          opacityLabel.style.display = 'grid';
-          opacityLabel.style.gap = '4px';
-          opacityLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Opacity</span>';
-          opacityInput = document.createElement('input');
-          opacityInput.type = 'range';
-          opacityInput.min = '0';
-          opacityInput.max = '100';
-          opacityInput.step = '1';
-          opacityInput.value = String(Math.round((node.mediaLayer?.opacity ?? node.opacity ?? 0.85) * 100));
-          opacityLabel.appendChild(opacityInput);
-          root.appendChild(opacityLabel);
-
-          const rotationLabel = document.createElement('label');
-          rotationLabel.style.display = 'grid';
-          rotationLabel.style.gap = '4px';
-          rotationLabel.innerHTML = '<span style="font-size:12px;font-weight:700;color:#334155;">Rotation</span>';
-          rotationInput = document.createElement('input');
-          rotationInput.type = 'range';
-          rotationInput.min = '-180';
-          rotationInput.max = '180';
-          rotationInput.step = '1';
-          rotationInput.value = String(Number.isFinite(node.rotation) ? node.rotation : 0);
-          rotationLabel.appendChild(rotationInput);
-          root.appendChild(rotationLabel);
+          const readOnlyNote = document.createElement('div');
+          readOnlyNote.style.padding = '10px 12px';
+          readOnlyNote.style.borderRadius = '12px';
+          readOnlyNote.style.border = '1px solid rgba(148,163,184,0.18)';
+          readOnlyNote.style.background = 'rgba(248,250,252,0.95)';
+          readOnlyNote.style.color = '#475569';
+          readOnlyNote.style.fontSize = '11px';
+          readOnlyNote.style.lineHeight = '1.45';
+          readOnlyNote.textContent = 'This image overlay is read-only. Use the checkbox in the Imports tree to show or hide it.';
+          root.appendChild(readOnlyNote);
 
           const href = node.imageHref || node.graphic?.attributes?.href;
           if (href) {
@@ -2420,6 +2570,20 @@ function openImportedEditor(node) {
             previewWrap.appendChild(img);
             root.appendChild(previewWrap);
           }
+
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'action-btn';
+          closeBtn.style.marginTop = '0';
+          closeBtn.textContent = 'Close';
+          closeBtn.addEventListener('click', () => view.popup.close());
+          root.appendChild(closeBtn);
+
+          view.popup.open({
+            title: `Imported ${node.title || 'overlay'}`,
+            content: root,
+            location: getNodePopupLocation(node)
+          });
+          return;
         }
 
         const btnRow = document.createElement('div');
@@ -2446,20 +2610,6 @@ function openImportedEditor(node) {
                 g.attributes.name = nextTitle;
               }
             });
-          }
-
-          if (isOverlay) {
-            const nextOpacity = clamp01((Number(opacityInput?.value) || 85) / 100);
-            node.opacity = nextOpacity;
-            if (node.mediaLayer) node.mediaLayer.opacity = nextOpacity;
-
-            const nextRotation = Number(rotationInput?.value) || 0;
-            node.rotation = nextRotation;
-
-            if (node.graphic?.attributes) {
-              node.graphic.attributes.rotation = nextRotation;
-              node.graphic.attributes.rotationText = `${nextRotation}°`;
-            }
           }
 
           renderImportTree();
@@ -3247,7 +3397,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         edit.type = 'button';
         edit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
         edit.title = 'Edit geometry';
-        edit.style.display = canEditGeometryNode(node) ? '' : 'none';
+        edit.style.display = canEditGeometryNode(node) && getNodeKind(node) !== 'overlay' ? '' : 'none';
         edit.addEventListener('click', (event) => {
           event.stopPropagation();
           beginGeometryEdit(node);
@@ -3460,7 +3610,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
       }
 
       function clearMeasurement() {
-        measurementLayer.removeAll();
+        recycleMeasurementLayer();
         toolState.mode = null;
         toolState.points = [];
         toolState.picked = null;
@@ -3504,7 +3654,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
       }
 
       function rebuildMeasurementGraphics() {
-        measurementLayer.removeAll();
+        recycleMeasurementLayer();
         const pts = toolState.points.slice();
         if (!pts.length) return;
 
@@ -3623,7 +3773,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
           spatialReference: { wkid: 4326 }
         });
         if (toolState.mode === 'pick') {
-          measurementLayer.removeAll();
+          recycleMeasurementLayer();
           measurementLayer.add(toolPointGraphic(point, 'pick'));
           toolState.picked = point;
           const ll = formatLatLon(point);
@@ -3735,8 +3885,9 @@ ${txt}`;
       function loadUiPrefs() {
         try {
           const raw = localStorage.getItem(UI_PREFS_KEY);
-          if (!raw) return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1 };
+          if (!raw) return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1, fov: 55 };
           const parsed = JSON.parse(raw);
+          const parsedFov = Number(parsed.fov);
           return {
             activeTab: ['map', 'tools', 'settings'].includes(parsed.activeTab) ? parsed.activeTab : 'map',
             compact: !!parsed.compact,
@@ -3745,13 +3896,14 @@ ${txt}`;
             importsSidebarCollapsed: !!parsed.importsSidebarCollapsed,
             mapType: ['topographic', 'satellite', 'hillshade'].includes(parsed.mapType) ? parsed.mapType : 'topographic',
             zoomSensitivity: Number.isFinite(Number(parsed.zoomSensitivity)) && Number(parsed.zoomSensitivity) > 0 ? Math.min(3, Math.max(0.25, Number(parsed.zoomSensitivity))) : 1,
+            fov: Number.isFinite(parsedFov) ? Math.min(170, Math.max(1, parsedFov)) : 55,
           };
         } catch (_) {
-          return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1 };
+          return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1, fov: 55 };
         }
       }
 
-      const uiPrefs = loadUiPrefs();
+      var uiPrefs = loadUiPrefs();
 
       function saveUiPrefs() {
         try { localStorage.setItem(UI_PREFS_KEY, JSON.stringify(uiPrefs)); } catch (_) {}
@@ -3781,6 +3933,471 @@ ${txt}`;
         }
       }
 
+      const fovRange = { min: 1, max: 170 };
+
+      function syncFovUi(value) {
+        const slider = document.getElementById('fovSlider');
+        const label = document.getElementById('fovLabel');
+        const numeric = Number(value);
+        const normalized = Number.isFinite(numeric) ? Math.min(fovRange.max, Math.max(fovRange.min, numeric)) : 55;
+        if (slider && Number(slider.value) !== normalized) slider.value = String(Math.round(normalized));
+        if (label) label.textContent = `${Math.round(normalized)}° diagonal FOV`;
+      }
+
+      function getCurrentCamera() {
+        if (!view || !view.camera) return null;
+        try {
+          if (typeof view.camera.clone === 'function') return view.camera.clone();
+        } catch (_) {}
+        try {
+          return new Camera(view.camera.toJSON ? view.camera.toJSON() : {
+            position: view.camera.position,
+            heading: view.camera.heading,
+            tilt: view.camera.tilt,
+            fov: Number.isFinite(view.camera.fov) ? view.camera.fov : 55
+          });
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function applyCamera(camera, animate = false) {
+        if (!camera || !view) return;
+        try {
+          const nextCamera = typeof camera.clone === 'function'
+            ? camera.clone()
+            : new Camera(camera.toJSON ? camera.toJSON() : camera);
+          if (animate) {
+            view.goTo(nextCamera, { animate: true }).catch(err => {
+              console.warn('Unable to apply camera update:', err);
+            });
+          } else {
+            view.camera = nextCamera;
+          }
+        } catch (err) {
+          console.warn('Unable to apply camera update:', err);
+        }
+      }
+
+      function setCameraFov(value, persist = true) {
+        const numeric = Number(value);
+        const normalized = Number.isFinite(numeric) ? Math.min(fovRange.max, Math.max(fovRange.min, numeric)) : 55;
+        const camera = getCurrentCamera();
+        if (camera) {
+          camera.fov = normalized;
+          applyCamera(camera, false);
+        }
+        syncFovUi(normalized);
+        if (persist) {
+          uiPrefs.fov = normalized;
+          saveUiPrefs();
+        }
+      }
+
+      const firstPersonState = {
+
+        mode: 'idle',
+        active: false,
+        keys: new Set(),
+        heading: 0,
+        pitch: 90,
+        lon: null,
+        lat: null,
+        elevationToken: 0,
+        pointerLocked: false,
+        originalCamera: null,
+        originalActionMap: null,
+        originalRotate: false,
+        forcedTerrainOn: false,
+        animationFrame: null,
+        lastFrameTime: null,
+        lastMouseX: null,
+        lastMouseY: null
+      };
+
+      const FIRST_PERSON_SPEED = 4; // meters per second
+      const FIRST_PERSON_EYE_HEIGHT = 0.75; // meters (75 cm above ground)
+      const FIRST_PERSON_MOUSE_SENSITIVITY_X = 0.18;
+      const FIRST_PERSON_MOUSE_SENSITIVITY_Y = 0.12;
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function normalizeAngle(deg) {
+        return ((deg % 360) + 360) % 360;
+      }
+
+      function getNavigationActionMap() {
+        return view && view.navigation && view.navigation.actionMap ? view.navigation.actionMap : null;
+      }
+
+      function applyFirstPersonNavigationLock(enabled) {
+        const actionMap = getNavigationActionMap();
+        if (!actionMap) return;
+        if (enabled) {
+          if (!firstPersonState.originalActionMap) {
+            firstPersonState.originalActionMap = {
+              dragPrimary: actionMap.dragPrimary,
+              dragSecondary: actionMap.dragSecondary,
+              dragTertiary: actionMap.dragTertiary,
+              mouseWheel: actionMap.mouseWheel
+            };
+          }
+          actionMap.dragPrimary = 'none';
+          actionMap.dragSecondary = 'none';
+          actionMap.dragTertiary = 'none';
+          actionMap.mouseWheel = 'none';
+        } else if (firstPersonState.originalActionMap) {
+          actionMap.dragPrimary = firstPersonState.originalActionMap.dragPrimary;
+          actionMap.dragSecondary = firstPersonState.originalActionMap.dragSecondary;
+          actionMap.dragTertiary = firstPersonState.originalActionMap.dragTertiary;
+          actionMap.mouseWheel = firstPersonState.originalActionMap.mouseWheel;
+        }
+      }
+
+      function updateFirstPersonButton() {
+        const btn = document.getElementById('btnFirstPerson');
+        if (!btn) return;
+        btn.classList.toggle('fp-active', firstPersonState.active || firstPersonState.mode === 'placing');
+        btn.textContent = firstPersonState.active ? 'Exit First Person' : 'First Person';
+      }
+
+      function setFirstPersonStatus(text) {
+        const status = document.getElementById('status');
+        if (status) {
+          status.textContent = text;
+          status.style.opacity = '1';
+        }
+      }
+
+      function syncFirstPersonCamera() {
+        if (!view || !view.camera || firstPersonState.lon === null || firstPersonState.lat === null) return;
+        const camera = getCurrentCamera();
+        if (!camera) return;
+        camera.position = {
+          longitude: firstPersonState.lon,
+          latitude: firstPersonState.lat,
+          z: camera.position && Number.isFinite(camera.position.z) ? camera.position.z : 0
+        };
+        camera.heading = normalizeAngle(firstPersonState.heading);
+        camera.tilt = clamp(firstPersonState.pitch, 1, 179);
+        camera.fov = clamp(Number(uiPrefs.fov ?? 55) || 55, fovRange.min, fovRange.max);
+        applyCamera(camera, false);
+      }
+
+      function forwardGeodesic(lon, lat, bearingDeg, distanceMeters) {
+        const R = 6378137;
+        const brng = bearingDeg * Math.PI / 180;
+        const lat1 = lat * Math.PI / 180;
+        const lon1 = lon * Math.PI / 180;
+        const ang = distanceMeters / R;
+        const sinLat1 = Math.sin(lat1);
+        const cosLat1 = Math.cos(lat1);
+        const sinAng = Math.sin(ang);
+        const cosAng = Math.cos(ang);
+        const lat2 = Math.asin(sinLat1 * cosAng + cosLat1 * sinAng * Math.cos(brng));
+        const lon2 = lon1 + Math.atan2(Math.sin(brng) * sinAng * cosLat1, cosAng - sinLat1 * Math.sin(lat2));
+        return {
+          lon: normalizeLon(lon2 * 180 / Math.PI),
+          lat: lat2 * 180 / Math.PI
+        };
+      }
+
+      function normalizeLon(lon) {
+        let v = lon;
+        while (v > 180) v -= 360;
+        while (v < -180) v += 360;
+        return v;
+      }
+
+      function getTerrainElevationValue(result) {
+        if (result == null) return null;
+        if (typeof result === 'number') return result;
+        if (typeof result.z === 'number') return result.z;
+        if (result.geometry && typeof result.geometry.z === 'number') return result.geometry.z;
+        if (result.features && result.features[0] && typeof result.features[0].geometry?.z === 'number') return result.features[0].geometry.z;
+        return null;
+      }
+
+      async function queryTerrainElevationAt(lon, lat) {
+        const point = new Point({
+          longitude: lon,
+          latitude: lat,
+          spatialReference: { wkid: 4326 }
+        });
+
+        try {
+          const sampler = view && view.groundView && view.groundView.elevationSampler;
+          if (sampler && typeof sampler.queryElevation === 'function') {
+            const sampled = sampler.queryElevation(point);
+            const resolved = typeof sampled?.then === 'function' ? await sampled : sampled;
+            const elevation = getTerrainElevationValue(resolved);
+            if (Number.isFinite(elevation)) return elevation;
+          }
+        } catch (_) {}
+
+        try {
+          const queried = await view.map.ground.queryElevation(point);
+          const elevation = getTerrainElevationValue(queried);
+          if (Number.isFinite(elevation)) return elevation;
+        } catch (_) {}
+
+        return null;
+      }
+
+      function stopFirstPersonLoop() {
+        if (firstPersonState.animationFrame) {
+          cancelAnimationFrame(firstPersonState.animationFrame);
+          firstPersonState.animationFrame = null;
+        }
+      }
+
+      async function refreshFirstPersonAltitude() {
+        if (!firstPersonState.active || firstPersonState.lon === null || firstPersonState.lat === null) return;
+        const token = ++firstPersonState.elevationToken;
+        const elevation = await queryTerrainElevationAt(firstPersonState.lon, firstPersonState.lat);
+        if (!firstPersonState.active || token !== firstPersonState.elevationToken) return;
+
+        const camera = getCurrentCamera();
+        if (!camera) return;
+        camera.position = {
+          longitude: firstPersonState.lon,
+          latitude: firstPersonState.lat,
+          z: (Number.isFinite(elevation) ? elevation : (camera.position?.z ?? 0)) + FIRST_PERSON_EYE_HEIGHT
+        };
+        camera.heading = normalizeAngle(firstPersonState.heading);
+        camera.tilt = clamp(firstPersonState.pitch, 1, 179);
+        camera.fov = clamp(Number(uiPrefs.fov ?? 55) || 55, fovRange.min, fovRange.max);
+        applyCamera(camera, false);
+      }
+
+      function computeFirstPersonStep(dtSeconds) {
+        if (!firstPersonState.active) return null;
+        const forward = (firstPersonState.keys.has('w') ? 1 : 0) - (firstPersonState.keys.has('s') ? 1 : 0);
+        const strafe = (firstPersonState.keys.has('d') ? 1 : 0) - (firstPersonState.keys.has('a') ? 1 : 0);
+        if (!forward && !strafe) return null;
+
+        const headingRad = normalizeAngle(firstPersonState.heading) * Math.PI / 180;
+        const forwardEast = Math.sin(headingRad);
+        const forwardNorth = Math.cos(headingRad);
+        const rightEast = Math.cos(headingRad);
+        const rightNorth = -Math.sin(headingRad);
+
+        let east = forward * forwardEast + strafe * rightEast;
+        let north = forward * forwardNorth + strafe * rightNorth;
+        const length = Math.hypot(east, north);
+        if (!length) return null;
+
+        east /= length;
+        north /= length;
+
+        const bearing = Math.atan2(east, north) * 180 / Math.PI;
+        const sprintMultiplier = firstPersonState.keys.has('shift') ? 14 : 1;
+        const distance = FIRST_PERSON_SPEED * sprintMultiplier * dtSeconds;
+        return { bearing, distance };
+      }
+
+      function updateFirstPersonPosition(dtSeconds) {
+        if (!firstPersonState.active || firstPersonState.lon === null || firstPersonState.lat === null) return;
+        const step = computeFirstPersonStep(dtSeconds);
+        if (!step) return;
+        const next = forwardGeodesic(firstPersonState.lon, firstPersonState.lat, step.bearing, step.distance);
+        firstPersonState.lon = next.lon;
+        firstPersonState.lat = next.lat;
+        syncFirstPersonCamera();
+        refreshFirstPersonAltitude();
+      }
+
+      function runFirstPersonFrame(timestamp) {
+        if (!firstPersonState.active) {
+          stopFirstPersonLoop();
+          return;
+        }
+        if (!Number.isFinite(firstPersonState.lastFrameTime)) {
+          firstPersonState.lastFrameTime = timestamp;
+        }
+        const dt = clamp((timestamp - firstPersonState.lastFrameTime) / 1000, 0, 0.05);
+        firstPersonState.lastFrameTime = timestamp;
+        updateFirstPersonPosition(dt);
+        firstPersonState.animationFrame = requestAnimationFrame(runFirstPersonFrame);
+      }
+
+      function beginFirstPersonPlacement() {
+        if (firstPersonState.active || firstPersonState.mode === 'placing') {
+          exitFirstPersonMode();
+          return;
+        }
+        firstPersonState.mode = 'placing';
+        firstPersonState.active = false;
+        firstPersonState.keys.clear();
+        firstPersonState.originalCamera = view.camera.clone();
+        firstPersonState.originalRotate = !!document.getElementById('toggleRotate')?.checked;
+        setFirstPersonStatus('First Person: click the map to choose a start position.');
+        updateFirstPersonButton();
+      }
+
+      async function enterFirstPersonAt(mapPoint) {
+        if (!mapPoint) return;
+        firstPersonState.mode = 'active';
+        firstPersonState.active = true;
+        firstPersonState.lastFrameTime = Number.NaN;
+        firstPersonState.keys.clear();
+        firstPersonState.heading = Number.isFinite(view.camera?.heading) ? view.camera.heading : 0;
+        firstPersonState.pitch = 88;
+        firstPersonState.lon = mapPoint.longitude;
+        firstPersonState.lat = mapPoint.latitude;
+
+        const rotateToggle = document.getElementById('toggleRotate');
+        if (rotateToggle && rotateToggle.checked) {
+          firstPersonState.originalRotate = true;
+          rotateToggle.checked = false;
+        } else {
+          firstPersonState.originalRotate = !!rotateToggle?.checked;
+        }
+
+        const terrainToggle = document.getElementById('toggleTerrain');
+        if (terrainToggle && !terrainToggle.checked) {
+          firstPersonState.forcedTerrainOn = true;
+          terrainToggle.checked = true;
+          terrainToggle.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          firstPersonState.forcedTerrainOn = false;
+        }
+
+        applyFirstPersonNavigationLock(true);
+        updateFirstPersonButton();
+        setFirstPersonStatus('First Person active — WASD moves, mouse looks, Esc exits.');
+        if (view.container && typeof view.container.requestPointerLock === 'function') {
+          try { view.container.requestPointerLock(); } catch (_) {}
+        }
+        syncFirstPersonCamera();
+        refreshFirstPersonAltitude();
+        stopFirstPersonLoop();
+        firstPersonState.animationFrame = requestAnimationFrame(runFirstPersonFrame);
+      }
+
+      function exitFirstPersonMode() {
+        const hadActive = firstPersonState.active || firstPersonState.mode === 'placing';
+        firstPersonState.mode = 'idle';
+        firstPersonState.active = false;
+        firstPersonState.keys.clear();
+        firstPersonState.lastMouseX = null;
+        firstPersonState.lastMouseY = null;
+        firstPersonState.elevationToken++;
+        stopFirstPersonLoop();
+
+        if (document.pointerLockElement === view.container && typeof document.exitPointerLock === 'function') {
+          try { document.exitPointerLock(); } catch (_) {}
+        }
+
+        applyFirstPersonNavigationLock(false);
+
+        const rotateToggle = document.getElementById('toggleRotate');
+        if (rotateToggle && firstPersonState.originalRotate) {
+          rotateToggle.checked = true;
+          rotateToggle.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        if (firstPersonState.forcedTerrainOn) {
+          const terrainToggle = document.getElementById('toggleTerrain');
+          if (terrainToggle) {
+            terrainToggle.checked = false;
+            terrainToggle.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+
+        if (firstPersonState.originalCamera && hadActive) {
+          view.camera = firstPersonState.originalCamera.clone();
+        }
+        const status = document.getElementById('status');
+        if (status) status.style.opacity = '0';
+        firstPersonState.originalCamera = null;
+        firstPersonState.originalActionMap = null;
+        firstPersonState.forcedTerrainOn = false;
+        updateFirstPersonButton();
+      }
+
+      function onFirstPersonMouseMove(event) {
+        if (!firstPersonState.active) return;
+        const dx = Number(event.movementX || 0);
+        const dy = Number(event.movementY || 0);
+
+        if (!firstPersonState.pointerLocked && !dx && !dy && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+          if (firstPersonState.lastMouseX == null || firstPersonState.lastMouseY == null) {
+            firstPersonState.lastMouseX = event.clientX;
+            firstPersonState.lastMouseY = event.clientY;
+            return;
+          }
+          const rawDx = event.clientX - firstPersonState.lastMouseX;
+          const rawDy = event.clientY - firstPersonState.lastMouseY;
+          firstPersonState.lastMouseX = event.clientX;
+          firstPersonState.lastMouseY = event.clientY;
+          if (rawDx || rawDy) {
+            firstPersonState.heading = normalizeAngle(firstPersonState.heading + rawDx * FIRST_PERSON_MOUSE_SENSITIVITY_X);
+            firstPersonState.pitch = clamp(firstPersonState.pitch - rawDy * FIRST_PERSON_MOUSE_SENSITIVITY_Y, 1, 179);
+            syncFirstPersonCamera();
+          }
+          return;
+        }
+
+        if (dx || dy) {
+          firstPersonState.heading = normalizeAngle(firstPersonState.heading + dx * FIRST_PERSON_MOUSE_SENSITIVITY_X);
+          firstPersonState.pitch = clamp(firstPersonState.pitch - dy * FIRST_PERSON_MOUSE_SENSITIVITY_Y, 1, 179);
+          syncFirstPersonCamera();
+        }
+      }
+
+      function onFirstPersonPointerLockChange() {
+        firstPersonState.pointerLocked = document.pointerLockElement === view.container;
+      }
+
+      function onFirstPersonKeyDown(event) {
+        if (!firstPersonState.active && firstPersonState.mode !== 'placing') return;
+        const key = String(event.key || '').toLowerCase();
+        if (key === 'escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+          exitFirstPersonMode();
+          return;
+        }
+        if (['w', 'a', 's', 'd', 'shift'].includes(key)) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+          firstPersonState.keys.add(key);
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      }
+
+      function onFirstPersonKeyUp(event) {
+        if (!firstPersonState.active && firstPersonState.mode !== 'placing') return;
+        const key = String(event.key || '').toLowerCase();
+        if (['w', 'a', 's', 'd', 'shift'].includes(key)) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+          firstPersonState.keys.delete(key);
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      function onFirstPersonBlur() {
+        firstPersonState.keys.clear();
+      }
+
+      document.addEventListener('mousemove', onFirstPersonMouseMove, true);
+      document.addEventListener('keydown', onFirstPersonKeyDown, true);
+      document.addEventListener('keyup', onFirstPersonKeyUp, true);
+      document.addEventListener('pointerlockchange', onFirstPersonPointerLockChange);
+      window.addEventListener('blur', onFirstPersonBlur);
+
       async function zoomTowardPointer(event) {
         if (!view || !view.camera || !view.container) return;
         const delta = Number(event.deltaY);
@@ -3808,7 +4425,8 @@ ${txt}`;
         if (!focusPoint) focusPoint = view.center || null;
         if (!focusPoint) return;
 
-        const camera = view.camera.clone();
+        const camera = getCurrentCamera();
+        if (!camera) return;
         const factorBase = delta > 0 ? 1.18 : 1 / 1.18;
         const factor = Math.pow(factorBase, Math.max(0.25, Math.min(3, zoomSensitivity)));
 
@@ -3960,6 +4578,28 @@ ${txt}`;
         document.querySelectorAll('[data-places-tab]').forEach(btn => btn.addEventListener('click', () => setPlacesTab(btn.dataset.placesTab)));
       }
 
+      function initHowToGuide() {
+        const modal = document.getElementById('howToGuideModal');
+        const openBtn = document.getElementById('btnOpenHowToGuide');
+        const closeBtn = document.getElementById('closeHowToGuide');
+        if (!modal || !openBtn || !closeBtn || modal.dataset.ready === '1') return;
+        modal.dataset.ready = '1';
+
+        const openGuide = () => {
+          modal.classList.add('open');
+          modal.setAttribute('aria-hidden', 'false');
+        };
+        const closeGuide = () => {
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+        };
+
+        openBtn.addEventListener('click', (e) => { e.stopPropagation(); openGuide(); });
+        closeBtn.addEventListener('click', closeGuide);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeGuide(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeGuide(); });
+      }
+
       // UI
       timeSlider.addEventListener("input", updateLighting);
       document.getElementById("btnAddMarker").addEventListener("click", addGpsMarker);
@@ -4024,6 +4664,7 @@ ${txt}`;
       initPanelSections();
       initImportsSidebar();
       initPanelTabs();
+      initHowToGuide();
       setActiveTab(uiPrefs.activeTab || 'map');
       setCompactMode(!!uiPrefs.compact);
       applyMapType(uiPrefs.mapType || 'topographic', false);
@@ -4038,11 +4679,20 @@ ${txt}`;
       document.getElementById("toggleBuildings").addEventListener("change", e => buildingsLayer.visible = e.target.checked);
       document.getElementById("toggleTerrain").addEventListener("change", e => map.ground.visible = e.target.checked);
       document.getElementById("tiltSlider").addEventListener("input", e => view.goTo({ tilt: Number(e.target.value) }, { animate: false }));
+      const fovSlider = document.getElementById('fovSlider');
+      if (fovSlider) {
+        fovSlider.addEventListener('input', e => setCameraFov(e.target.value));
+      }
+      const firstPersonButton = document.getElementById('btnFirstPerson');
+      if (firstPersonButton) {
+        firstPersonButton.addEventListener('click', () => beginFirstPersonPlacement());
+      }
       const zoomSensitivitySlider = document.getElementById('zoomSensitivitySlider');
       if (zoomSensitivitySlider) {
         zoomSensitivitySlider.addEventListener('input', e => setZoomSensitivity(e.target.value));
       }
       setZoomSensitivity(uiPrefs.zoomSensitivity || 1, false);
+      syncFovUi(uiPrefs.fov ?? 55);
 
       const locations = {
         halifax: { position: { longitude: -63.586949480877735, latitude: 44.65286231272531, z: 350 }, tilt: 65, heading: 140 },
@@ -4054,6 +4704,7 @@ ${txt}`;
 
       view.on('pointer-down', async (event) => {
         try {
+          if (firstPersonState.active || firstPersonState.mode === 'placing') return;
           if (hasActiveCreateTool()) return;
           if (!isMeasureToolActive()) return;
           const response = await view.hitTest(event);
@@ -4068,6 +4719,7 @@ ${txt}`;
 
       view.on('pointer-move', async (event) => {
         try {
+          if (firstPersonState.active || firstPersonState.mode === 'placing') return;
           if (editingNode) return;
           if (hasActiveCreateTool()) {
             if (event.mapPoint) {
@@ -4089,12 +4741,17 @@ ${txt}`;
       });
 
       view.on('pointer-up', () => {
-        toolState.dragging = false;
-        toolState.dragIndex = null;
-        if (view.container) view.container.style.cursor = '';
+        if (!firstPersonState.active && firstPersonState.mode !== 'placing') {
+          toolState.dragging = false;
+          toolState.dragIndex = null;
+          if (view.container) view.container.style.cursor = '';
+        }
       });
 
       document.addEventListener('keydown', (event) => {
+        if (firstPersonState.active || firstPersonState.mode === 'placing') {
+          return;
+        }
         if (event.key === 'Escape') {
           if (editingNode) {
             event.preventDefault();
@@ -4117,6 +4774,7 @@ ${txt}`;
       });
 
       view.on('double-click', (event) => {
+        if (firstPersonState.active || firstPersonState.mode === 'placing') return;
         if (!hasActiveCreateTool()) return;
         if (createState.mode === 'path' || createState.mode === 'polygon') {
           event.stopPropagation();
@@ -4126,6 +4784,17 @@ ${txt}`;
 
       view.on('click', async (event) => {
         try {
+          if (firstPersonState.mode === 'placing') {
+            event.stopPropagation();
+            if (event.mapPoint) {
+              await enterFirstPersonAt(event.mapPoint);
+            }
+            return;
+          }
+          if (firstPersonState.active) {
+            event.stopPropagation();
+            return;
+          }
           if (editingNode) return;
           if (hasActiveCreateTool()) {
             event.stopPropagation();
@@ -4175,6 +4844,8 @@ ${txt}`;
         renderImportTree();
         renderUserCreatedTree();
         setPlacesTab('create');
+        setCameraFov(uiPrefs.fov ?? 55, false);
+        updateFirstPersonButton();
 
         sketchVM = new SketchViewModel({
           view,
