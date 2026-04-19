@@ -34,6 +34,23 @@
       box-shadow: var(--shadow); pointer-events: none; transition: opacity 0.5s, transform 0.5s;
     }
 
+    .osm-credit {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      z-index: 1000;
+      background: rgba(17, 24, 39, 0.68);
+      color: rgba(255, 255, 255, 0.92);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.1px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+      pointer-events: none;
+    }
+
     .panel {
       position: absolute; right: 20px; top: 20px; bottom: auto; z-index: 1000;
       background: linear-gradient(180deg, rgba(18, 24, 38, 0.90), rgba(255, 255, 255, 0.88));
@@ -214,19 +231,6 @@
     .panel-tab i, .places-tab i { font-size: 0.95em; }
     .panel-tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.94); border-color: rgba(0,121,193,0.28); color: var(--primary); box-shadow: 0 10px 18px rgba(15,23,42,0.08); }
     .panel-tab.active { background: linear-gradient(135deg, var(--primary), #005a91); color: #fff; border-color: transparent; box-shadow: 0 12px 22px rgba(0,121,193,0.18); }
-    .compact-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: 2px 0 10px; padding: 8px 10px; border: 1px solid rgba(148,163,184,0.16); border-radius: 12px; background: rgba(255,255,255,0.44); }
-    .compact-row .compact-label { display:flex; flex-direction:column; gap:2px; min-width:0; }
-    .compact-row .compact-label strong { font-size: 12px; color:#0f172a; }
-    .compact-row .compact-label span { font-size: 10px; color:#64748b; }
-    .panel.compact { width: 306px; }
-    .panel.compact .setting-desc,
-    .panel.compact .stats,
-    .panel.compact .import-box .coord-actions + div,
-    .panel.compact .import-box > div[style*='font-size:11px'],
-    .panel.compact .section-body .setting-desc { display:none !important; }
-    .panel.compact .section-title { margin-top: 12px; }
-    .panel.compact .import-box, .panel.compact .stats { padding: 10px; }
-    .panel.compact .tree-panel { max-height: 180px; }
     .section-group { margin-bottom: 4px; }
     .section-group.collapsed .section-body { display: none; }
     .section-title { font-weight: 800; text-transform: uppercase; font-size: 10px; color: #64748b; margin: 18px 0 10px 0; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; }
@@ -455,6 +459,7 @@
 <body>
   <div id="map"></div>
   <div class="status" id="status">Initializing 3D World...</div>
+  <div class="osm-credit">Nova Scotia GeoNOVA • Open Data</div>
   <div id="hoverTip" style="position:absolute;display:none;z-index:1100;pointer-events:none;background:rgba(17,24,39,0.92);color:#fff;padding:6px 8px;border-radius:8px;font-size:12px;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.25);"></div>
 
   <div id="geometryEditPanel" class="geometry-editor hidden">
@@ -536,16 +541,6 @@
         <button class="panel-tab" type="button" data-tab="tools"><i class="fa-solid fa-wrench"></i><span>Tools</span></button>
                 <button class="panel-tab" type="button" data-tab="settings"><i class="fa-solid fa-sliders"></i><span>Settings</span></button>
       </div>
-      <div class="compact-row" id="compactModeRow">
-        <div class="compact-label">
-          <strong>Compact mode</strong>
-          <span>Collapses sections and trims the menu height</span>
-        </div>
-        <label class="switch" title="Toggle compact mode">
-          <input type="checkbox" id="toggleCompact">
-          <span class="slider"></span>
-        </label>
-      </div>
       <span class="section-title">Visual Style</span>
       <div class="setting-row">
         <div class="setting-label">
@@ -612,6 +607,17 @@
         <button class="action-btn" id="btnAddMarker">Place 1.5m Cone</button>
       </div>
 
+      <span class="section-title">Place Search</span>
+      <div class="import-box">
+        <input type="text" id="placeSearchInput" placeholder="Search by name or address (for example: Halifax Citadel or 123 Main St)">
+        <div class="import-row">
+          <button class="action-btn" id="btnPlaceSearch" style="margin-top:0; flex:1;">Search Place</button>
+          <button class="tree-toggle" id="btnClearPlaceSearch" title="Clear place search results"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="placeSearchStatus" class="coord-output" style="margin-top:10px;">Search for a place or address.</div>
+        <div id="placeSearchResults" class="tree-panel" style="max-height: 210px;"></div>
+      </div>
+
       <span class="section-title">Location & Measure</span>
       <div class="import-box">
         <div class="tool-grid">
@@ -668,11 +674,21 @@
       <span class="section-title">Map Type</span>
       <div class="setting-label">
         <span class="setting-title">Map Type</span>
-        <span class="setting-desc">Switch between Topographic, Satellite, and the Nova Scotia LiDAR overlay.</span>
+        <span class="setting-desc">Switch between Topographic, Satellite, Nova Scotia 10K Imagery, the Nova Scotia LiDAR overlay, and a roads/place names overlay.</span>
         <select id="mapTypeSelect">
           <option value="topographic">Topographic</option>
           <option value="satellite">Satellite</option>
+          <option value="imagery">Nova Scotia 10K Imagery</option>
           <option value="hillshade">Nova Scotia Hillshade (LiDAR overlay)</option>
+          <option value="roads">Roads &amp; Place Names Overlay</option>
+        </select>
+      </div>
+      <div class="setting-label" style="margin-top:10px;">
+        <span class="setting-title">Reference Overlay</span>
+        <span class="setting-desc">Transparent global roads and place names drawn over the current basemap or imagery.</span>
+        <select id="referenceOverlaySelect">
+          <option value="off">Off</option>
+          <option value="roads">Roads &amp; Place Names</option>
         </select>
       </div>
       <span class="section-title">Shortcuts</span>
@@ -699,14 +715,14 @@
       </div>
       <div class="guide-dialog-body">
         <div class="guide-grid">
-          <div class="guide-card"><h3>1. Start with the map</h3><ul><li>Use the <strong>Map</strong> tab to switch between Topographic, Satellite, and the Nova Scotia LiDAR overlay.</li><li>Keep <strong>Terrain</strong> enabled for a true 3D surface.</li><li>Use <strong>Buildings</strong> to toggle scene building layers when available.</li></ul></div>
+          <div class="guide-card"><h3>1. Start with the map</h3><ul><li>Use the <strong>Map</strong> tab to switch between Topographic, Satellite, Nova Scotia 10K Imagery, the Nova Scotia LiDAR overlay, and the roads/place names overlay.</li><li>Use the <strong>Reference Overlay</strong> dropdown to place transparent roads and place names over any basemap or imagery.</li><li>Keep <strong>Terrain</strong> enabled for a true 3D surface.</li></ul></div>
           <div class="guide-card"><h3>2. Move around the scene</h3><ul><li>Drag to pan across the globe.</li><li>Mouse wheel zooms smoothly using the sensitivity slider in <strong>Settings → Navigation</strong>.</li><li>Use <strong>View Angle</strong> to tilt the camera and <strong>Auto-Rotate</strong> to keep the globe turning.</li></ul></div>
-          <div class="guide-card"><h3>3. Use the LiDAR overlay</h3><ul><li>Select <strong>Nova Scotia Hillshade (LiDAR overlay)</strong> from the map type menu.</li><li>A loading notice appears while the layer initializes.</li><li>If the overlay looks faint, adjust the view angle and zoom closer.</li></ul></div>
+          <div class="guide-card"><h3>3. Use overlays</h3><ul><li>Select <strong>Nova Scotia Hillshade (LiDAR overlay)</strong> from the map type menu when you want terrain shading.</li><li>Use <strong>Roads &amp; Place Names Overlay</strong> from the map type menu or <strong>Reference Overlay → Roads &amp; Place Names</strong> for a transparent overlay on top of Satellite or Nova Scotia 10K Imagery.</li><li>If either overlay looks faint, adjust the view angle and zoom closer.</li></ul></div>
           <div class="guide-card"><h3>4. Create your own places</h3><ul><li><strong>Add Place Mark</strong>: type a name, click <strong>Add Place Mark</strong>, then click once on the map to drop a single point. Use this for custom pins, markers, and simple saved locations.</li><li><strong>Add Path</strong>: click <strong>Add Path</strong>, then place points one by one to draw a line. Double-click or press <strong>Finalize</strong> to finish the path.</li><li><strong>Add Polygon</strong>: click <strong>Add Polygon</strong>, then place points around an area. Double-click or press <strong>Finalize</strong> to close and save the shape.</li><li>Use <strong>Cancel</strong> if you want to stop the current creation mode and clear the draft points.</li></ul></div>
           <div class="guide-card"><h3>5. Edit imported and created items</h3><ul><li>In <strong>My Places</strong>, open an item and choose the edit option to reshape paths and polygons.</li><li>Drag the white vertices to move them, click the ghost vertices to add new points, and press <strong>Delete</strong> or <strong>Backspace</strong> to remove selected vertices.</li><li>Imported items keep their original structure unless you save the edit, so always use <strong>Save</strong> when the shape is correct.</li><li>Created paths and polygons can also be edited the same way after they are added to <strong>My Places</strong>.</li></ul></div>
           <div class="guide-card"><h3>6. Import and export files</h3><ul><li>Go to <strong>KML / KMZ Import</strong> for supported file loading.</li><li>Use the type filters to show or hide categories after import.</li><li>Use the export buttons to save your current imported content back out as KML or KMZ.</li></ul></div>
           <div class="guide-card"><h3>6. Measure and inspect</h3><ul><li><strong>Pick Coordinates</strong> reports the clicked point.</li><li><strong>Measure Distance</strong> and <strong>Measure Area</strong> let you build temporary measurement graphics.</li><li>Use the copy button to quickly copy the currently selected latitude and longitude.</li></ul></div>
-          <div class="guide-card"><h3>7. Keep the UI comfortable</h3><ul><li><strong>Compact mode</strong> trims the panel height when you need more map space.</li><li>Collapse the Earth Controls or Places panel from their headers when you want a cleaner view.</li><li>Settings are saved locally, so your preferred layout returns when the page reloads.</li></ul></div>
+          <div class="guide-card"><h3>7. Keep the UI comfortable</h3><ul><li>Collapse the Earth Controls or Places panel from their headers when you want a cleaner view.</li><li>Settings are saved locally, so your preferred layout returns when the page reloads.</li><li>Use the map type controls to switch layers quickly without changing the rest of the layout.</li></ul></div>
           <div class="guide-card"><h3>8. Best-practice workflow</h3><ul><li>Pick the map style first, then turn on the LiDAR overlay if you need hillshade detail.</li><li>Adjust zoom sensitivity before fine work on dense areas.</li><li>Use the Places panel for editing, then save or export when you are done.</li></ul></div>
         </div>
         <div class="guide-callout">Tip: if something looks hidden or missing, check whether the relevant tab, layer toggle, or filter chip is currently turned off. Many features in this app are intentionally controlled from the panel rather than always shown on the map.</div>
@@ -726,7 +742,9 @@
       "esri/layers/GraphicsLayer",
       "esri/layers/FeatureLayer",
       "esri/layers/MapImageLayer",
-      "esri/widgets/Sketch/SketchViewModel",
+      "esri/layers/TileLayer",
+      "esri/layers/VectorTileLayer",
+            "esri/widgets/Sketch/SketchViewModel",
       "esri/Graphic",
       "esri/geometry/Point",
       "esri/geometry/Polyline",
@@ -735,7 +753,6 @@
       "esri/core/reactiveUtils",
       "esri/symbols/PointSymbol3D",
       "esri/symbols/ObjectSymbol3DLayer",
-      "esri/symbols/TextSymbol",
       "esri/symbols/SimpleMarkerSymbol",
       "esri/symbols/SimpleLineSymbol",
       "esri/symbols/SimpleFillSymbol",
@@ -747,7 +764,7 @@
       "esri/symbols/PictureFillSymbol",
       "esri/geometry/Extent"
     ], function(
-      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, MapImageLayer, SketchViewModel, Graphic, Point, Polyline, Polygon, Camera, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, TextSymbol, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
+      Map, Basemap, SceneView, SceneLayer, ElevationLayer, GraphicsLayer, FeatureLayer, MapImageLayer, TileLayer, VectorTileLayer, SketchViewModel, Graphic, Point, Polyline, Polygon, Camera, reactiveUtils, PointSymbol3D, ObjectSymbol3DLayer, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, MediaLayer, ImageElement, ExtentAndRotationGeoreference, CornersGeoreference, PictureMarkerSymbol, PictureFillSymbol, Extent
     ) {
       const map = new Map({
         basemap: "topo-vector",
@@ -756,67 +773,254 @@
         }
       });
 
-      // Use the Nova Scotia hillshade as a draped overlay in SceneView.
-      const hillshadeLayer = new MapImageLayer({
-        url: "https://nsgiwa.novascotia.ca/arcgis/rest/services/ELEV/ELEV_LIDAR_Projects_Hillshade_UT83/MapServer",
-        title: "Nova Scotia LiDAR Hillshade",
-        opacity: 0.9,
-        visible: false,
-        listMode: "show"
-      });
-      map.add(hillshadeLayer);
-      hillshadeLayer.when(() => {
-        try {
-          hillshadeLayer.minScale = 0;
-          hillshadeLayer.maxScale = 0;
-          const clearScale = (sublayer) => {
-            if (!sublayer) return;
-            sublayer.minScale = 0;
-            sublayer.maxScale = 0;
-            if (sublayer.allSublayers && typeof sublayer.allSublayers.forEach === 'function') {
-              sublayer.allSublayers.forEach(clearScale);
-            } else if (sublayer.sublayers && typeof sublayer.sublayers.forEach === 'function') {
-              sublayer.sublayers.forEach(clearScale);
+          const imageryUrl = "https://nsgiwa.novascotia.ca/arcgis/rest/services/BASE/BASE_NSODB_10k_WM84/MapServer";
+          const roadsOverlayUrl = "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer";
+          const placeNamesUrl = "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer";
+
+    let imageryLayer = null;
+    let hillshadeLayer = null;
+    let roadsOverlayRoadLayer = null;
+    let roadsOverlayPlaceLayer = null;
+    let imageryLayerPromise = null;
+    let hillshadeLayerPromise = null;
+    let roadsOverlayPromise = null;
+
+    function ensureImageryLayer() {
+      if (imageryLayer) {
+        return Promise.resolve(imageryLayer);
+      }
+      if (!imageryLayerPromise) {
+        imageryLayerPromise = Promise.resolve().then(() => {
+          imageryLayer = new TileLayer({
+            url: imageryUrl,
+            title: "Nova Scotia 10K Imagery",
+            visible: false,
+            listMode: "show"
+          });
+          map.add(imageryLayer);
+          return imageryLayer.load().catch((err) => {
+            console.error("Imagery layer failed to load", err);
+            throw err;
+          });
+        });
+      }
+      return imageryLayerPromise;
+    }
+
+    function ensureHillshadeLayer() {
+      if (hillshadeLayer) {
+        return Promise.resolve(hillshadeLayer);
+      }
+      if (!hillshadeLayerPromise) {
+        hillshadeLayerPromise = Promise.resolve().then(() => {
+          hillshadeLayer = new MapImageLayer({
+            url: "https://nsgiwa.novascotia.ca/arcgis/rest/services/ELEV/ELEV_LIDAR_Projects_Hillshade_UT83/MapServer",
+            title: "Nova Scotia LiDAR Hillshade",
+            opacity: 0.9,
+            visible: false,
+            listMode: "show"
+          });
+          map.add(hillshadeLayer);
+          return hillshadeLayer.when(() => {
+            try {
+              hillshadeLayer.minScale = 0;
+              hillshadeLayer.maxScale = 0;
+              const clearScale = (sublayer) => {
+                if (!sublayer) return;
+                sublayer.minScale = 0;
+                sublayer.maxScale = 0;
+                if (sublayer.allSublayers && typeof sublayer.allSublayers.forEach === 'function') {
+                  sublayer.allSublayers.forEach(clearScale);
+                } else if (sublayer.sublayers && typeof sublayer.sublayers.forEach === 'function') {
+                  sublayer.sublayers.forEach(clearScale);
+                }
+              };
+              if (hillshadeLayer.allSublayers && typeof hillshadeLayer.allSublayers.forEach === 'function') {
+                hillshadeLayer.allSublayers.forEach(clearScale);
+              }
+            } catch (err) {
+              console.warn('Unable to force hillshade scales to 0:', err);
             }
-          };
-          if (hillshadeLayer.allSublayers && typeof hillshadeLayer.allSublayers.forEach === 'function') {
-            hillshadeLayer.allSublayers.forEach(clearScale);
+            return hillshadeLayer;
+          });
+        });
+      }
+      return hillshadeLayerPromise;
+    }
+
+    function ensureRoadsOverlayLayers() {
+      if (roadsOverlayRoadLayer && roadsOverlayPlaceLayer) {
+        return Promise.resolve({
+          roadsOverlayRoadLayer,
+          roadsOverlayPlaceLayer
+        });
+      }
+      if (!roadsOverlayPromise) {
+        roadsOverlayPromise = Promise.resolve().then(() => {
+          if (!roadsOverlayRoadLayer) {
+            roadsOverlayRoadLayer = new TileLayer({
+              url: roadsOverlayUrl,
+              title: "Global Transportation Overlay",
+              visible: false,
+              opacity: 1,
+              listMode: "show"
+            });
+            map.add(roadsOverlayRoadLayer);
           }
-        } catch (err) {
-          console.warn('Unable to force hillshade scales to 0:', err);
-        }
-      });
-
-      const hillshadeBasemap = new Basemap({
-        baseLayers: [],
-        title: "Nova Scotia LiDAR Hillshade"
-      });
-
-      function applyMapType(type, persist = true) {
-        const normalized = (type === "satellite" || type === "hillshade") ? type : "topographic";
-        const select = document.getElementById("mapTypeSelect");
-
-        if (normalized === "hillshade") {
-          map.basemap = "topo-vector";
-          setStatus("Loading Nova Scotia LiDAR hillshade... This might take a while to load.");
-          if (hillshadeLayer) {
-            hillshadeLayer.visible = true;
-            hillshadeLayer.opacity = 0.9;
+          if (!roadsOverlayPlaceLayer) {
+            roadsOverlayPlaceLayer = new TileLayer({
+              url: placeNamesUrl,
+              title: "Global Boundaries and Places Overlay",
+              visible: false,
+              opacity: 1,
+              listMode: "show"
+            });
+            map.add(roadsOverlayPlaceLayer);
           }
-          setStatus("Nova Scotia LiDAR hillshade enabled as a 3D overlay.");
+          return Promise.all([
+            roadsOverlayRoadLayer.load().catch((err) => {
+              console.error("Road overlay layer failed to load", err);
+              throw err;
+            }),
+            roadsOverlayPlaceLayer.load().catch((err) => {
+              console.error("Place names overlay layer failed to load", err);
+              throw err;
+            })
+          ]).then(() => {
+            try { map.reorder(roadsOverlayRoadLayer, map.layers.length - 1); } catch (_) {}
+            try { map.reorder(roadsOverlayPlaceLayer, map.layers.length - 1); } catch (_) {}
+            return {
+              roadsOverlayRoadLayer,
+              roadsOverlayPlaceLayer
+            };
+          });
+        });
+      }
+      return roadsOverlayPromise;
+    }
+
+    function hideRoadsOverlayLayers() {
+      if (roadsOverlayRoadLayer) roadsOverlayRoadLayer.visible = false;
+      if (roadsOverlayPlaceLayer) roadsOverlayPlaceLayer.visible = false;
+    }
+
+    function applyMapType(type, persist = true) {
+      const normalized = (type === "satellite" || type === "imagery" || type === "hillshade" || type === "roads") ? type : "topographic";
+      const select = document.getElementById("mapTypeSelect");
+
+      const hideOverlays = () => {
+        if (imageryLayer) imageryLayer.visible = false;
+        if (hillshadeLayer) hillshadeLayer.visible = false;
+      };
+
+      if (normalized === "hillshade") {
+        map.basemap = "topo-vector";
+        hideOverlays();
+        setStatus("Loading Nova Scotia LiDAR hillshade... This might take a while to load.");
+        ensureHillshadeLayer()
+          .then((layer) => {
+            if (layer) {
+              layer.visible = true;
+              layer.opacity = 0.9;
+            }
+            setStatus("Nova Scotia LiDAR hillshade enabled as a 3D overlay.");
+          })
+          .catch((err) => {
+            console.error("Hillshade layer failed to load", err);
+            setStatus("Hillshade failed to load");
+          });
+      } else if (normalized === "imagery") {
+        map.basemap = "topo-vector";
+        hideOverlays();
+        setStatus("Loading Nova Scotia 10K imagery...");
+        ensureImageryLayer()
+          .then((layer) => {
+            if (layer) {
+              layer.visible = true;
+            }
+            setStatus("Nova Scotia 10K imagery enabled.");
+          })
+          .catch((err) => {
+            console.error("Imagery layer failed to load", err);
+            setStatus("Imagery failed to load");
+          });
+      } else if (normalized === "roads") {
+        setStatus("Loading global roads and place names overlay...");
+        ensureRoadsOverlayLayers()
+          .then((layers) => {
+            if (layers?.roadsOverlayRoadLayer) {
+              layers.roadsOverlayRoadLayer.visible = true;
+              layers.roadsOverlayRoadLayer.opacity = 1;
+              try { map.reorder(layers.roadsOverlayRoadLayer, map.layers.length - 1); } catch (_) {}
+            }
+            if (layers?.roadsOverlayPlaceLayer) {
+              layers.roadsOverlayPlaceLayer.visible = true;
+              try { map.reorder(layers.roadsOverlayPlaceLayer, map.layers.length - 1); } catch (_) {}
+            }
+            setStatus("Global roads and place names overlay enabled.");
+          })
+          .catch((err) => {
+            console.error("Global roads overlay failed to load", err);
+            setStatus("Global roads overlay failed to load");
+          });
+        uiPrefs.referenceOverlay = 'roads';
+        const overlaySelect = document.getElementById("referenceOverlaySelect");
+        if (overlaySelect) overlaySelect.value = 'roads';
+      } else {
+        hideOverlays();
+        map.basemap = normalized === "satellite" ? "satellite" : "topo-vector";
+        if (normalized === "satellite") {
+          setStatus("Satellite basemap enabled.");
         } else {
-          if (hillshadeLayer) hillshadeLayer.visible = false;
-          map.basemap = normalized === "satellite" ? "satellite" : "topo-vector";
-        }
-
-        if (select && select.value !== normalized) select.value = normalized;
-        if (persist) {
-          uiPrefs.mapType = normalized;
-          saveUiPrefs();
+          setStatus("Topographic basemap enabled.");
         }
       }
 
-      const view = new SceneView({
+      if (select && select.value !== normalized) select.value = normalized;
+      if (normalized !== "roads") {
+        uiPrefs.lastBaseMapType = normalized;
+      }
+      if (persist) {
+        uiPrefs.mapType = normalized;
+        saveUiPrefs();
+      }
+    }
+
+    function applyReferenceOverlay(mode, persist = true) {
+      const normalized = mode === "roads" ? "roads" : "off";
+      const select = document.getElementById("referenceOverlaySelect");
+
+      if (normalized === "roads") {
+        setStatus("Loading global roads and place names overlay...");
+        ensureRoadsOverlayLayers()
+          .then((layers) => {
+            if (layers?.roadsOverlayRoadLayer) {
+              layers.roadsOverlayRoadLayer.visible = true;
+              layers.roadsOverlayRoadLayer.opacity = 1;
+              try { map.reorder(layers.roadsOverlayRoadLayer, map.layers.length - 1); } catch (_) {}
+            }
+            if (layers?.roadsOverlayPlaceLayer) {
+              layers.roadsOverlayPlaceLayer.visible = true;
+              try { map.reorder(layers.roadsOverlayPlaceLayer, map.layers.length - 1); } catch (_) {}
+            }
+            setStatus("Global roads and place names overlay enabled.");
+          })
+          .catch((err) => {
+            console.error("Global reference overlay failed to load", err);
+            setStatus("Global reference overlay failed to load");
+          });
+      } else {
+        hideRoadsOverlayLayers();
+      }
+
+      if (select && select.value !== normalized) select.value = normalized;
+      if (persist) {
+        uiPrefs.referenceOverlay = normalized;
+        saveUiPrefs();
+      }
+    }
+
+const view = new SceneView({
         container: "map",
         map,
         qualityProfile: "high",
@@ -840,9 +1044,10 @@
       view.ui.move(["zoom", "navigation-toggle", "compass"], "bottom-right");
 
       const markerLayer = new GraphicsLayer();
+      const placeSearchLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       let measurementLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
       let editLayer = new GraphicsLayer({ elevationInfo: { mode: 'on-the-ground' } });
-      map.addMany([markerLayer, measurementLayer, editLayer]);
+      map.addMany([markerLayer, placeSearchLayer, measurementLayer, editLayer]);
 
       const importedRoot = { id: 'root', title: 'Imported Items', type: 'root', expanded: true, children: [], parent: null };
       const importedNodes = Object.create(null);
@@ -865,6 +1070,11 @@
         lastText: '',
         dragIndex: null,
         dragging: false
+      };
+      const placeSearchState = {
+        results: [],
+        lastQuery: '',
+        requestId: 0
       };
       const createState = {
         mode: null,
@@ -1630,7 +1840,7 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         });
         const labelGraphic = new Graphic({
           geometry: new Point({ longitude: point.longitude, latitude: point.latitude, z: (Number(point.z) || 0) + 8, spatialReference: { wkid: 4326 } }),
-          symbol: new TextSymbol({ text: title, color: '#111', haloColor: '#fff', haloSize: 1.5, font: { size: 11, family: 'Segoe UI', weight: 'bold' }, yoffset: 18 }),
+          symbol: createFloatingLabelSymbol(title, { color: '#111', haloColor: '#fff', haloSize: 1.5, size: 11, screenLength: 20, maxWorldLength: 60, minWorldLength: 12 }),
           attributes: { title, name: title, kind: 'pin-label', source: 'User Created', showDistance: true }
         });
         userCreatedLayer.addMany([coneGraphic, labelGraphic]);
@@ -1675,7 +1885,7 @@ function buildCornersGeoreferenceFromLatLonBox(north, south, east, west, rotatio
         const centroid = calcCentroid(points);
         const labelGraphic = new Graphic({
           geometry: new Point({ longitude: centroid.longitude, latitude: centroid.latitude, z: centroid.z + 2.5, spatialReference: { wkid: 4326 } }),
-          symbol: new TextSymbol({ text: title, color: '#111', haloColor: '#fff', haloSize: 2, font: { size: 11, family: 'Segoe UI', weight: 'bold' } }),
+          symbol: createFloatingLabelSymbol(title, { color: '#111', haloColor: '#fff', haloSize: 2, size: 11, screenLength: 20, maxWorldLength: 60, minWorldLength: 12 }),
           attributes: { title, name: title, kind: 'polygon-label', source: 'User Created' }
         });
         userCreatedLayer.addMany([polyGraphic, labelGraphic]);
@@ -2938,14 +3148,7 @@ ${styleBlock}  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
             lastDist: -1,
             showDistance: true
           },
-          symbol: new TextSymbol({
-            text: name,
-            color: "#111",
-            haloColor: "#fff",
-            haloSize: 1.5,
-            font: { size: 11, family: "Segoe UI", weight: "bold" },
-            yoffset: 18
-          })
+          symbol: createFloatingLabelSymbol(name, { color: '#111', haloColor: '#fff', haloSize: 1.5, size: 11, screenLength: 20, maxWorldLength: 60, minWorldLength: 12 })
         });
 
         return { coneGraphic, labelGraphic };
@@ -3045,13 +3248,7 @@ ${styleBlock}  ${desc ? `<description>${escapeKml(desc)}</description>` : ''}
             z: centroid.z + 2.5,
             spatialReference: { wkid: 4326 }
           }),
-          symbol: new TextSymbol({
-            text: title,
-            color: (style.label?.color && Array.isArray(style.label.color)) ? style.label.color : '#111',
-            haloColor: '#fff',
-            haloSize: 2,
-            font: { size: Math.max(11, Math.round((style.label?.scale || 1) * 11)), family: 'Segoe UI', weight: 'bold' }
-          }),
+          symbol: createFloatingLabelSymbol(title, { color: (style.label?.color && Array.isArray(style.label.color)) ? style.label.color : '#111', haloColor: '#fff', haloSize: 2, size: Math.max(11, Math.round((style.label?.scale || 1) * 11)), screenLength: 20, maxWorldLength: 60, minWorldLength: 12 }),
           attributes: {
             title,
             name: title,
@@ -3675,13 +3872,7 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
               z: (last.z || 0) + 20,
               spatialReference: { wkid: 4326 }
             }),
-            symbol: new TextSymbol({
-              text: `Distance: ${formatDistanceMeters(total)}`,
-              color: '#0f172a',
-              haloColor: '#ffffff',
-              haloSize: 2,
-              font: { size: 11, family: 'Segoe UI', weight: 'bold' }
-            })
+            symbol: createFloatingLabelSymbol(`Distance: ${formatDistanceMeters(total)}`, { color: '#0f172a', haloColor: '#ffffff', haloSize: 2, size: 11, screenLength: 24, maxWorldLength: 80, minWorldLength: 12 })
           });
           graphics.push(new Graphic({
             geometry: line,
@@ -3711,13 +3902,8 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
               z: centroid.z + 20,
               spatialReference: { wkid: 4326 }
             }),
-            symbol: new TextSymbol({
-              text: `Area: ${formatAreaSqMeters(area)}\nPerimeter: ${formatDistanceMeters(perimeter)}`,
-              color: '#0f172a',
-              haloColor: '#ffffff',
-              haloSize: 2,
-              font: { size: 11, family: 'Segoe UI', weight: 'bold' }
-            })
+            symbol: createFloatingLabelSymbol(`Area: ${formatAreaSqMeters(area)}
+Perimeter: ${formatDistanceMeters(perimeter)}`, { color: '#0f172a', haloColor: '#ffffff', haloSize: 2, size: 11, screenLength: 24, maxWorldLength: 80, minWorldLength: 12, lineHeight: 1.15 })
           });
           graphics.push(new Graphic({
             geometry: polygon,
@@ -3829,6 +4015,190 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
         } catch (e) { console.error(e); setStatus("Failed to place marker."); }
       }
 
+      function clearPlaceSearchResults() {
+        placeSearchLayer.removeAll();
+        placeSearchState.results = [];
+        placeSearchState.lastQuery = '';
+        const statusEl = document.getElementById('placeSearchStatus');
+        const resultsEl = document.getElementById('placeSearchResults');
+        if (statusEl) statusEl.innerHTML = 'Search for a place or address.';
+        if (resultsEl) resultsEl.innerHTML = '';
+      }
+
+      function setPlaceSearchStatus(html) {
+        const statusEl = document.getElementById('placeSearchStatus');
+        if (statusEl) statusEl.innerHTML = html;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function renderPlaceSearchResults(results) {
+        const resultsEl = document.getElementById('placeSearchResults');
+        if (!resultsEl) return;
+        resultsEl.innerHTML = '';
+        if (!results || !results.length) {
+          resultsEl.innerHTML = '<div class="coord-output">No results found.</div>';
+          return;
+        }
+
+        results.forEach((result, index) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'location-btn';
+          const label = result.display_name || result.name || 'Unnamed place';
+          const meta = `${result.type || result.class || 'Place'} • ${Number.isFinite(Number(result.importance)) ? `score ${Number(result.importance).toFixed(3)}` : 'search result'}`;
+          btn.innerHTML = `
+            <i class="fa-solid fa-location-dot"></i>
+            <span style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+              <span style="font-size:12px;line-height:1.25;">${escapeHtml(label)}</span>
+              <span style="font-size:10px;color:#64748b;font-weight:700;">${escapeHtml(meta)}</span>
+            </span>
+          `;
+          btn.addEventListener('click', () => focusPlaceSearchResult(result, index));
+          resultsEl.appendChild(btn);
+        });
+      }
+
+      function placeSearchGraphic(point, name, index) {
+        return new Graphic({
+          geometry: point,
+          symbol: new SimpleMarkerSymbol({
+            color: [0, 121, 193, 0.95],
+            size: 11,
+            outline: { color: [255, 255, 255, 1], width: 1.5 }
+          }),
+          attributes: {
+            kind: 'place-search',
+            name,
+            index
+          }
+        });
+      }
+
+      async function focusPlaceSearchResult(result, index = 0) {
+        if (!result) return;
+        const lat = Number(result.lat);
+        const lon = Number(result.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          setPlaceSearchStatus('That result does not have valid coordinates.');
+          return;
+        }
+
+        const temp = new Point({ longitude: lon, latitude: lat, spatialReference: { wkid: 4326 } });
+        const ground = view.map && view.map.ground;
+        const res = ground && typeof ground.queryElevation === 'function' ? await ground.queryElevation(temp) : null;
+        const point = res && res.geometry ? res.geometry : temp;
+
+        placeSearchLayer.removeAll();
+        placeSearchLayer.add(placeSearchGraphic(point, result.display_name || result.name || 'Search result', index));
+        try { map.reorder(placeSearchLayer, map.layers.length - 1); } catch (_) {}
+
+        const displayName = result.display_name || result.name || 'Search result';
+        const ll = formatLatLon(point);
+        setPlaceSearchStatus(`<strong>${escapeHtml(displayName)}</strong><br>Lat: ${ll ? ll.lat.toFixed(6) : lat.toFixed(6)}<br>Lon: ${ll ? ll.lon.toFixed(6) : lon.toFixed(6)}`);
+        setStatus(`Found place: ${displayName}`);
+        if (ll) copyTextToClipboard(ll.text);
+
+        try {
+          await view.goTo({ target: point, tilt: 65 }, { duration: 1500 });
+        } catch (_) {}
+      }
+
+      function buildNominatimSearchUrl(query) {
+        const params = new URLSearchParams({
+          format: 'jsonv2',
+          q: query,
+          limit: '8',
+          addressdetails: '1',
+          namedetails: '1',
+          dedupe: '1',
+          'accept-language': navigator.language || 'en'
+        });
+        return `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+      }
+
+      function loadJsonp(url) {
+        return new Promise((resolve, reject) => {
+          const cbName = `nominatim_cb_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+          let script = null;
+          let timer = null;
+          const cleanup = () => {
+            try { delete window[cbName]; } catch (_) { window[cbName] = undefined; }
+            if (script && script.parentNode) script.parentNode.removeChild(script);
+            if (timer) clearTimeout(timer);
+          };
+          script = document.createElement('script');
+          script.async = true;
+          script.referrerPolicy = 'origin';
+          timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('Place search timed out.'));
+          }, 10000);
+
+          window[cbName] = (data) => {
+            cleanup();
+            resolve(data);
+          };
+          script.onerror = () => {
+            cleanup();
+            reject(new Error('Place search request failed.'));
+          };
+          script.src = `${url}&json_callback=${cbName}`;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function searchPlacesByNameOrAddress(rawQuery) {
+        const query = (rawQuery || '').trim();
+        if (!query) {
+          setPlaceSearchStatus('Type a place name or address first.');
+          return;
+        }
+
+        placeSearchState.requestId += 1;
+        const requestId = placeSearchState.requestId;
+        placeSearchState.lastQuery = query;
+        setPlaceSearchStatus('Searching...');
+        document.getElementById('placeSearchResults')?.replaceChildren();
+        placeSearchLayer.removeAll();
+
+        try {
+          const url = buildNominatimSearchUrl(query);
+          let results = [];
+          try {
+            const response = await fetch(url, { method: 'GET', mode: 'cors' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            results = await response.json();
+          } catch (fetchErr) {
+            results = await loadJsonp(url);
+          }
+
+          if (requestId !== placeSearchState.requestId) return;
+          placeSearchState.results = Array.isArray(results) ? results : [];
+          if (!placeSearchState.results.length) {
+            setPlaceSearchStatus(`No results for <strong>${escapeHtml(query)}</strong>.`);
+            renderPlaceSearchResults([]);
+            return;
+          }
+
+          setPlaceSearchStatus(`Showing ${placeSearchState.results.length} result(s) for <strong>${escapeHtml(query)}</strong>.`);
+          renderPlaceSearchResults(placeSearchState.results);
+          await focusPlaceSearchResult(placeSearchState.results[0], 0);
+        } catch (err) {
+          if (requestId !== placeSearchState.requestId) return;
+          console.error('Place search failed', err);
+          setPlaceSearchStatus('Place search failed. Try again in a moment.');
+          renderPlaceSearchResults([]);
+        }
+      }
+
       function updateDistanceLabelsForCollection(collection, camera) {
         if (!collection || !camera) return;
         collection.forEach(g => {
@@ -3846,8 +4216,14 @@ function parseKmlNode(el, parent = importedRoot, styles = {}, inheritedStyle = {
             g.attributes.lastDist = dist3D;
             const txt = dist3D > 1000 ? (dist3D / 1000).toFixed(2) + " km" : Math.round(dist3D) + " m";
             const s = g.symbol.clone();
-            s.text = `${g.attributes.name}
+            const layer = Array.isArray(s.symbolLayers) ? s.symbolLayers[0] : (s.symbolLayers && typeof s.symbolLayers.at === 'function' ? s.symbolLayers.at(0) : null);
+            if (layer && typeof layer === 'object') {
+              layer.text = `${g.attributes.name}
 ${txt}`;
+            } else if (typeof s.text === 'string' || typeof s.text === 'undefined') {
+              s.text = `${g.attributes.name}
+${txt}`;
+            }
             g.symbol = s;
           }
         });
@@ -3876,6 +4252,7 @@ ${txt}`;
         '3D Rendering': 'map',
         'Navigation': 'tools',
         'GPS Marker Tool': 'tools',
+        'Place Search': 'tools',
         'Location & Measure': 'tools',
         'KML / KMZ Import': 'imports',
         'Map Type': 'settings',
@@ -3885,21 +4262,22 @@ ${txt}`;
       function loadUiPrefs() {
         try {
           const raw = localStorage.getItem(UI_PREFS_KEY);
-          if (!raw) return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1, fov: 55 };
+          if (!raw) return { activeTab: 'map', sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', lastBaseMapType: 'topographic', referenceOverlay: 'off', zoomSensitivity: 1, fov: 55 };
           const parsed = JSON.parse(raw);
           const parsedFov = Number(parsed.fov);
           return {
             activeTab: ['map', 'tools', 'settings'].includes(parsed.activeTab) ? parsed.activeTab : 'map',
-            compact: !!parsed.compact,
             sections: parsed.sections && typeof parsed.sections === 'object' ? parsed.sections : {},
             panelCollapsed: !!parsed.panelCollapsed,
             importsSidebarCollapsed: !!parsed.importsSidebarCollapsed,
-            mapType: ['topographic', 'satellite', 'hillshade'].includes(parsed.mapType) ? parsed.mapType : 'topographic',
+            mapType: ['topographic', 'satellite', 'imagery', 'hillshade', 'roads'].includes(parsed.mapType) ? parsed.mapType : 'topographic',
+            lastBaseMapType: ['topographic', 'satellite', 'imagery', 'hillshade'].includes(parsed.lastBaseMapType) ? parsed.lastBaseMapType : 'topographic',
+            referenceOverlay: ['off', 'roads'].includes(parsed.referenceOverlay) ? parsed.referenceOverlay : 'off',
             zoomSensitivity: Number.isFinite(Number(parsed.zoomSensitivity)) && Number(parsed.zoomSensitivity) > 0 ? Math.min(3, Math.max(0.25, Number(parsed.zoomSensitivity))) : 1,
             fov: Number.isFinite(parsedFov) ? Math.min(170, Math.max(1, parsedFov)) : 55,
           };
         } catch (_) {
-          return { activeTab: 'map', compact: false, sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', zoomSensitivity: 1, fov: 55 };
+          return { activeTab: 'map', sections: {}, panelCollapsed: false, importsSidebarCollapsed: false, mapType: 'topographic', lastBaseMapType: 'topographic', referenceOverlay: 'off', zoomSensitivity: 1, fov: 55 };
         }
       }
 
@@ -4022,6 +4400,41 @@ ${txt}`;
 
       function clamp(value, min, max) {
         return Math.min(max, Math.max(min, value));
+      }
+
+      function createFloatingLabelSymbol(text, options = {}) {
+        const labelText = String(text ?? "");
+        const size = Number.isFinite(Number(options.size)) ? Number(options.size) : 11;
+        return new PointSymbol3D({
+          symbolLayers: [{
+            type: "text",
+            text: labelText,
+            material: { color: options.color || "#111" },
+            halo: {
+              color: options.haloColor || "#fff",
+              size: Number.isFinite(Number(options.haloSize)) ? Number(options.haloSize) : 2
+            },
+            size: size,
+            font: {
+              size: size,
+              family: options.family || "Segoe UI",
+              weight: options.weight || "bold"
+            },
+            background: options.background ? { color: options.background } : undefined,
+            lineHeight: options.lineHeight || 1.1
+          }],
+          verticalOffset: {
+            screenLength: Number.isFinite(Number(options.screenLength)) ? Number(options.screenLength) : 18,
+            maxWorldLength: Number.isFinite(Number(options.maxWorldLength)) ? Number(options.maxWorldLength) : 80,
+            minWorldLength: Number.isFinite(Number(options.minWorldLength)) ? Number(options.minWorldLength) : 12
+          },
+          callout: {
+            type: "line",
+            size: Number.isFinite(Number(options.calloutSize)) ? Number(options.calloutSize) : 1,
+            color: options.calloutColor || [255, 255, 255, 0.85],
+            border: { color: options.calloutBorderColor || [0, 0, 0, 0.25] }
+          }
+        });
       }
 
       function normalizeAngle(deg) {
@@ -4479,15 +4892,6 @@ ${txt}`;
         saveUiPrefs();
       }
 
-      function setCompactMode(on) {
-        const panel = document.getElementById('controlPanel');
-        const checkbox = document.getElementById('toggleCompact');
-        if (panel) panel.classList.toggle('compact', on);
-        if (checkbox) checkbox.checked = on;
-        uiPrefs.compact = on;
-        saveUiPrefs();
-      }
-
       function setActiveTab(tab) {
         uiPrefs.activeTab = tab;
         saveUiPrefs();
@@ -4509,7 +4913,7 @@ ${txt}`;
         let currentGroup = null;
         nodes.forEach(node => {
           if (!(node instanceof HTMLElement)) return;
-          if (node.classList.contains('panel-tabs') || node.classList.contains('compact-row')) return;
+          if (node.classList.contains('panel-tabs')) return;
           if (node.classList.contains('section-title')) {
             const titleText = node.textContent.replace(/▾|▸/g, '').trim();
             const group = document.createElement('div');
@@ -4563,10 +4967,6 @@ ${txt}`;
         document.querySelectorAll('.panel-tab').forEach(btn => {
           btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
         });
-        const compact = document.getElementById('toggleCompact');
-        if (compact) {
-          compact.addEventListener('change', e => setCompactMode(e.target.checked));
-        }
         const importsHeader = document.getElementById('importsSidebarHeader');
         if (importsHeader) {
           importsHeader.addEventListener('click', () => {
@@ -4603,6 +5003,17 @@ ${txt}`;
       // UI
       timeSlider.addEventListener("input", updateLighting);
       document.getElementById("btnAddMarker").addEventListener("click", addGpsMarker);
+      document.getElementById("btnPlaceSearch").addEventListener("click", () => searchPlacesByNameOrAddress(document.getElementById('placeSearchInput')?.value));
+      document.getElementById("btnClearPlaceSearch").addEventListener("click", clearPlaceSearchResults);
+      const placeSearchInput = document.getElementById('placeSearchInput');
+      if (placeSearchInput) {
+        placeSearchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            searchPlacesByNameOrAddress(placeSearchInput.value);
+          }
+        });
+      }
       document.getElementById("btnPickLocation").addEventListener("click", () => setToolMode('pick'));
       document.getElementById("btnMeasureDistance").addEventListener("click", () => setToolMode('distance'));
       document.getElementById("btnMeasureArea").addEventListener("click", () => setToolMode('area'));
@@ -4666,8 +5077,10 @@ ${txt}`;
       initPanelTabs();
       initHowToGuide();
       setActiveTab(uiPrefs.activeTab || 'map');
-      setCompactMode(!!uiPrefs.compact);
-      applyMapType(uiPrefs.mapType || 'topographic', false);
+      const initialBaseMapType = uiPrefs.lastBaseMapType || 'topographic';
+      const initialMapType = uiPrefs.mapType || 'topographic';
+      applyMapType(initialMapType === 'roads' ? initialBaseMapType : initialMapType, false);
+      applyReferenceOverlay(initialMapType === 'roads' ? 'roads' : (uiPrefs.referenceOverlay || 'off'), false);
       setPanelCollapsed(!!uiPrefs.panelCollapsed);
       setImportsSidebarCollapsed(!!uiPrefs.importsSidebarCollapsed);
       document.getElementById("panelHeader").addEventListener("click", () => setPanelCollapsed(!document.getElementById("controlPanel").classList.contains("collapsed")));
@@ -4675,6 +5088,10 @@ ${txt}`;
       const mapTypeSelect = document.getElementById('mapTypeSelect');
       if (mapTypeSelect) {
         mapTypeSelect.addEventListener('change', e => applyMapType(e.target.value));
+      }
+      const referenceOverlaySelect = document.getElementById('referenceOverlaySelect');
+      if (referenceOverlaySelect) {
+        referenceOverlaySelect.addEventListener('change', e => applyReferenceOverlay(e.target.value));
       }
       document.getElementById("toggleBuildings").addEventListener("change", e => buildingsLayer.visible = e.target.checked);
       document.getElementById("toggleTerrain").addEventListener("change", e => map.ground.visible = e.target.checked);
